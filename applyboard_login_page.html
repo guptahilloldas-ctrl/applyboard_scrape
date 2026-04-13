@@ -1,0 +1,789 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+    <meta name="robots" content="none" />
+    <link rel="shortcut icon" href="https://ok12static.oktacdn.com/bc/image/fileStoreRecord?id=fs0a437k3nAyjDSDs5d7" type="image/x-icon" />
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open Sans'>
+    <style>
+        body,
+        .container {
+            background-color: #ffffff !important;
+        }
+
+        .content {
+            min-height: 100vh;
+            flex-direction: row;
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            align-items: center;
+        }
+
+        .image-container {
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            flex: 1 1 50%;
+            align-self: stretch;
+        }
+
+        .login-form {
+            flex: 1 1 50%;
+            justify-content: center;
+            display: flex;
+        }
+
+        #okta-sign-in.auth-container {
+            float: right;
+            margin: 0;
+            overflow: visible
+                /* fix scroll bar on MFA screen */
+        }
+
+        #okta-login-container #okta-sign-in.auth-container.main-container {
+            background-color: #fff;
+            border-color: #fff;
+            box-shadow: none;
+        }
+
+        #okta-login-container #okta-sign-in.auth-container .okta-sign-in-header {
+            border-bottom-color: #fff;
+        }
+
+        #okta-sign-in .okta-form-title.o-form-head {
+            font-style: normal;
+            font-weight: 600;
+            font-size: 24px;
+            line-height: 32px;
+            margin-bottom: 25px;
+            text-align: left;
+            color: #323847;
+        }
+
+        #okta-sign-in.no-beacon .okta-sign-in-header.auth-header {
+            padding: 0 0 0 42px;
+        }
+
+        #okta-sign-in .okta-sign-in-header .auth-org-logo {
+            margin: 0;
+        }
+
+        #okta-sign-in .forgot-password .auth-footer,
+        #okta-sign-in .account-unlock .auth-footer {
+            padding-top: 14px;
+        }
+
+        #okta-login-container .auth-container {
+            padding-top: 40px;
+        }
+
+        #okta-sign-in.auth-container.main-container .auth-content-inner .margin-btm-5 {
+            margin-bottom: 10px;
+        }
+
+        #okta-sign-in.auth-container.main-container .auth-content-inner .custom-checkbox {
+            margin-top: -17px;
+            margin-bottom: 13px;
+        }
+
+        #okta-sign-in.auth-container .auth-content-inner .okta-form-label {
+            color: #606A84;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+        }
+
+        #okta-sign-in.auth-container .button,
+        #okta-sign-in.auth-container .button.link-button,
+        #okta-sign-in.auth-container .auth-footer,
+        #okta-sign-in.auth-container .o-form .o-form-label,
+        #okta-sign-in.auth-container .o-form input,
+        #okta-sign-in.auth-container .o-form label,
+        #okta-sign-in.auth-container .o-form textarea,
+        #okta-sign-in.auth-container .social-auth-button.link-button,
+        #okta-sign-in.auth-container #help-links-container .link,
+        /* OIE Selectors */
+        #okta-sign-in.auth-container .auth-footer .link {
+            /* End OIE Selectors */
+            font-size: 16px;
+            text-decoration: none;
+            font-family: montserrat, montserrat-okta, sans-serif;
+        }
+
+        #okta-sign-in.auth-container .auth-content input[type=submit],
+        #okta-sign-in.auth-container .auth-content a,
+        #okta-sign-in .okta-form-title.o-form-head {
+            font-family: montserrat, montserrat-okta, sans-serif;
+        }
+
+        #okta-sign-in .okta-form-label label[for=account-recovery-username] {
+            padding-bottom: 20px;
+            display: flex;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+            line-height: 24px;
+            color: #323847;
+        }
+
+        #okta-sign-in .forgot-password-email-enabled .o-form-fieldset {
+            margin-bottom: 30px;
+        }
+
+        #okta-sign-in.auth-container .auth-content .button-primary,
+        #okta-sign-in.auth-container .auth-content .button-primary:focus,
+        #okta-sign-in.auth-container .auth-content .button-primary:hover {
+            color: #ffffff !important;
+            background: #0064E1 !important;
+            font-weight: 600;
+        }
+
+        #okta-sign-in.auth-container .social-auth-button.link-button {
+            color: #323847;
+            font-weight: 600;
+        }
+
+        #okta-sign-in .o-form-content.o-form-theme {
+            padding: 0;
+        }
+
+        #okta-sign-in .o-form-content .okta-form-subtitle.o-form-explain {
+            text-align: left;
+            font-family: 'Open Sans', sans-serif;
+            color: #000000;
+        }
+
+        #okta-sign-in .o-form .input-fix,
+        #okta-sign-in .o-form .textarea-fix {
+            border-radius: 4px !important;
+        }
+
+        #okta-sign-in .button,
+        #okta-sign-in .button.link-button,
+        #okta-sign-in .social-auth-button.link-button {
+            border-radius: 8px !important;
+            padding-right: 0 !important;
+        }
+
+        #okta-sign-in.auth-container .social-auth-facebook-button:active,
+        #okta-sign-in.auth-container .social-auth-facebook-button:focus,
+        #okta-sign-in.auth-container .social-auth-facebook-button:hover,
+        #okta-sign-in.auth-container .social-auth-facebook-button {
+            border: 1px solid #c3c3c3;
+            background: #fbfbfb url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20width%3D%2240%22%20height%3D%2240%22%20preserveAspectRatio%3D%22xMidYMid%20meet%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M32%2016c0-8.839-7.167-16-16-16C7.161%200%200%207.161%200%2016c0%207.984%205.849%2014.604%2013.5%2015.803V20.626H9.437v-4.625H13.5v-3.527c0-4.009%202.385-6.223%206.041-6.223c1.751%200%203.584.312%203.584.312V10.5h-2.021c-1.984%200-2.604%201.235-2.604%202.5v3h4.437l-.713%204.625H18.5v11.177C26.145%2030.603%2032%2023.983%2032%2015.999z%22%20fill%3D%22%234267b2%22%2F%3E%3C%2Fsvg%3E') no-repeat 10px;
+            background-size: 30px;
+        }
+
+        #okta-sign-in .auth-content .focused-input,
+        #okta-sign-in .auth-content .link.help:focus,
+        #okta-sign-in.auth-container .auth-content input[type=button]:focus,
+        #okta-sign-in.auth-container .auth-content input[type=submit]:focus {
+            box-shadow: none;
+        }
+
+        /* Footer links */
+        #okta-sign-in.auth-container #help-links-container .link,
+        #okta-sign-in.auth-container #help-links-container .link:active,
+        #okta-sign-in.auth-container #help-links-container .link:hover,
+        #okta-sign-in.auth-container #help-links-container .link:link,
+        #okta-sign-in.auth-container #help-links-container .link:visited {
+            color: #0064E1;
+            font-weight: 600;
+        }
+
+        /* OIE Selectors */
+        #okta-sign-in.auth-container .auth-footer .link,
+        #okta-sign-in.auth-container .auth-footer .link:active,
+        #okta-sign-in.auth-container .auth-footer .link:hover,
+        #okta-sign-in.auth-container .auth-footer .link:link,
+        #okta-sign-in.auth-container .auth-footer .link:visited {
+            color: #0064E1;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 15px;
+            padding: 0;
+        }
+
+        #okta-sign-in.auth-container .auth-footer .link:active,
+        #okta-sign-in.auth-container .auth-footer .link:hover,
+        #okta-sign-in.auth-container .auth-footer .js-unlock.link:active,
+        #okta-sign-in.auth-container .auth-footer .js-unlock.link:hover {
+            text-decoration: underline;
+        }
+
+        /* End OIE Selectors */
+
+        .js-help,
+        .js-help-link {
+            display: none;
+        }
+
+        .js-help-links {
+            display: block !important;
+        }
+
+        #okta-sign-in.auth-container .link.help.js-back,
+        #okta-sign-in.auth-container .auth-footer .link.goto {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 24px;
+            color: #323847;
+            float: inherit;
+        }
+
+        /* End Footer links */
+
+        #okta-sign-in .auth-content .password-reset .password-requirements--header,
+        #okta-sign-in .auth-content .password-reset .password-requirements--list {
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        /* "Don't have an account" header */
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(3),
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(6) {
+            margin-top: 40px;
+        }
+
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(6) .link {
+            color: #323847;
+            font-weight: 600;
+            font-size: 18px;
+            pointer-events: none;
+            cursor: default;
+            text-decoration: none;
+            padding-top: 50px;
+        }
+
+        /* OIE Selectors */
+        #okta-sign-in.auth-container .auth-footer>.link:nth-child(3),
+        #okta-sign-in.auth-container .auth-footer>.link:nth-child(3):hover,
+        #okta-sign-in.auth-container .auth-footer>.link:nth-child(3):active,
+        #okta-sign-in.auth-container .auth-footer>.link:nth-child(3):link,
+        #okta-sign-in.auth-container .auth-footer>.link:nth-child(3):visited {
+            color: #323847;
+            font-weight: 600;
+            font-size: 18px;
+            pointer-events: none;
+            cursor: default;
+            text-decoration: none;
+            margin-top: 40px;
+        }
+
+        /* End OIE Selectors */
+        /* End "Don't have an account" header */
+
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(n+7) .link {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+            color: #323847;
+        }
+
+        /* Unlock account link - OIE */
+        #okta-sign-in.auth-container .auth-footer>.js-unlock.link {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+            color: #323847;
+            text-decoration: none;
+        }
+
+        /* End Unlock account link - OIE */
+
+        /* Forgot password page - OIE */
+        #okta-sign-in .siw-main-header .beacon-container {
+            display: none;
+        }
+
+        /* Forgot password email input - OIE */
+
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(2) .link,
+        #okta-sign-in.auth-container #help-links-container>li:nth-last-child(3) .link {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+            color: #0064E1;
+            font-size: 14px;
+        }
+
+        /* Privacy & Cookies Policy and Terms & Conditions links - OIE */
+        #okta-sign-in.auth-container .auth-footer>.link:nth-last-child(1),
+        #okta-sign-in.auth-container .auth-footer>.link:nth-last-child(2) {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: normal;
+            color: #0064E1;
+            font-size: 14px;
+        }
+
+        #okta-sign-in.auth-container .auth-footer>.link:nth-last-child(2) {
+            margin-top: 40px;
+        }
+
+        /* End Privacy & Cookies Policy and Terms & Conditions links - OIE */
+
+        #okta-login-container.mobile .auth-container .primary-auth-form .o-form-input-name-remember,
+        #okta-login-container.mobile .auth-container #help-links-container>li:nth-child(3),
+        #okta-login-container.mobile .auth-container #help-links-container>li:nth-child(4),
+        #okta-login-container.mobile .auth-container #help-links-container>li:nth-child(5) {
+            display: none;
+        }
+
+        /* Remove Register as a Student and Register as a Recruitment Partner links for mobile - OIE */
+        #okta-login-container.mobile .auth-container .primary-auth-form .o-form-input-name-remember,
+        #okta-login-container.mobile .auth-container .auth-footer>link:nth-child(2),
+        #okta-login-container.mobile .auth-container .auth-footer>link:nth-child(3),
+        #okta-login-container.mobile .auth-container .auth-footer>link:nth-child(4),
+        #okta-login-container.mobile .auth-container .auth-footer>a:nth-child(3),
+        #okta-login-container.mobile .auth-container .auth-footer>a:nth-child(4),
+        #okta-login-container.mobile .auth-container .auth-footer>a:nth-child(5) {
+            display: none;
+        }
+
+        /* End Remove Register as a Student and Register as a Recruitment Partner links for mobile - OIE */
+
+        #okta-sign-in.auth-container .o-form-input-error .icon-16 {
+            left: 0;
+        }
+
+        /* MFA selector fixes */
+        #okta-sign-in .beacon-container .factors-dropdown-wrap a::after {
+            content: "Click here to select factor";
+            color: #6e6e78;
+            font-size: 0.75em;
+            white-space: nowrap;
+            top: 38px;
+            position: absolute;
+            right: -50%;
+        }
+
+        #okta-sign-in .okta-sign-in-header.auth-header {
+            padding-bottom: 20px;
+            border-bottom-style: none;
+        }
+
+        #okta-sign-in .auth-header .beacon-container {
+            height: 3em;
+            width: 3em;
+        }
+
+        #okta-sign-in .beacon-container .dropdown a.link-button.bg-helper.icon-button.link-button-icon.option-selected.center {
+            overflow: visible;
+        }
+
+        /* End MFA selector fixes */
+
+        /* MFA setup button fixes */
+        #okta-sign-in .enroll-factor-list .enroll-factor-button a.button.link-button,
+        /* OIE Selectors */
+        #okta-sign-in .authenticator-verify-list .authenticator-description .authenticator-button .link-button {
+            /* End OIE Selectors */
+            padding-right: 10px !important;
+        }
+
+        /* End MFA setup button fixes */
+
+        /* Verify email space between text and button fixes */
+        #okta-sign-in .auth-content .auth-content-inner .mfa-verify .mfa-verify-email .o-form-content .o-form-fieldset-container {
+            margin-bottom: 24px;
+        }
+
+        /* End Verify email space between text and button fixes */
+
+        /* Add space between secret key in Google totp  */
+        #okta-sign-in .auth-content .auth-content-inner .enroll-manual-totp .o-form .o-form-content .o-form-fieldset-container .secret-key-instructions section .shared-key {
+            margin: 24px 0 24px 0;
+        }
+
+        /* End add space between secret key in Google totp  */
+
+        /* Unlock account button fixes - OIE */
+        #okta-sign-in .auth-content .auth-content-inner .authenticator-verify-list .authenticator-button .link-button {
+            color: #ffffff !important;
+            background: #0064E1 !important;
+            font-weight: 600;
+            height: 40px;
+            line-height: 36px;
+            padding: 0 10px !important;
+        }
+
+        /* End Unlock account button fixes - OIE */
+
+        /* Google authentication can't scan QR code footer link fixes */
+        #okta-sign-in .auth-content .auth-content-inner .enroll-manual-totp .auth-footer {
+            display: flex;
+            justify-content: space-between
+        }
+
+        /* End Google authentication can't scan QR code footer link fixes */
+
+        @media only screen and (max-width: 480px) {
+            #okta-sign-in.no-beacon .okta-sign-in-header.auth-header {
+                padding: 0;
+            }
+
+            #okta-sign-in.no-beacon .auth-content {
+                padding-left: inherit;
+                padding-right: inherit;
+            }
+        }
+
+        @media only screen and (max-width: 600px) {
+            #okta-sign-in.auth-container.main-container .auth-content {
+                max-width: 300px;
+            }
+        }
+
+        @media only screen and (max-width: 720px) {
+            .login-form {
+                justify-content: center;
+            }
+
+            .image-container {
+                display: none;
+            }
+        }
+    </style>
+
+    <title>ApplyBoard - Sign In</title>
+    <!-- Core widget js and css -->
+<script type="text/javascript"
+        src="https://ok12static.oktacdn.com/assets/js/sdk/okta-signin-widget/5.16.1/js/okta-sign-in.min.js" integrity="sha384-a2yCLiNNwZ2BjqZF19qFKM2XWAuGKREPL8S3FckTr8+S4JDdpNqPehJUjVfNHf5a" crossorigin="anonymous"></script>
+<link rel="stylesheet"
+      type="text/css"
+      href="https://ok12static.oktacdn.com/assets/js/sdk/okta-signin-widget/5.16.1/css/okta-sign-in.min.css"
+      integrity="sha384-zUHc/FFDFFmykbNkto+EZAzC503JijLI36H4ZzE1I0xMWpAiLBN67BcdwmLv1DJ8"
+      crossorigin="anonymous">
+
+<!-- Customizable css theme options. Link your own stylesheet or override styles inline. -->
+<link rel="stylesheet"
+      type="text/css" href="" integrity="" crossorigin="anonymous">
+
+<!-- styles for custom sign in -->
+<link rel="stylesheet" type="text/css" href="https://ok12static.oktacdn.com/assets/loginpage/css/custom-signin.a91af2abfd04662e499bd3e151150dbf.css" integrity="sha384-BhMidK4jYIQaVFKNVHUvbfdgrt4NVlnlTZMsOMWLdWkme3j1JcshKDNQiMssd7sN" crossorigin="anonymous">
+
+
+<script type="text/javascript" nonce="Z1IpE2TNO8BgzMBradHdnA">
+    window.onerror = function (msg, _url, _lineNo, _colNo, error) {
+        if (window.console && window.console.error) {
+            if (error) {
+                console.error(error);
+            } else {
+                console.error(msg);
+            }
+        }
+
+        // Return true to suppress "Script Error" alerts in IE
+        return true;
+    };
+</script>
+
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="content">
+            <div class="login-form">
+                <div id="okta-login-container">
+                </div>
+            </div>
+            <div class="image-container" style="background-image: url('https://ok12static.oktacdn.com/fs/bco/7/fs0a437k43QXmImKU5d7')">
+            </div>
+
+            
+<div id="okta-sign-in" class="auth-container main-container unsupported-message-container" style="display:none">
+    <div id="unsupported-cookie" class="unsupported-message" style="display:none">
+        <h2 class="o-form-head">Cookies are required</h2>
+        <p>Cookies are disabled on your browser. Please enable Cookies and refresh this page.</p>
+        <a class="button button-primary" target="_blank" href=".">
+            Refresh
+        </a>
+    </div>
+</div>
+<div id="inactive-tab-main-div" style="display:none;">
+    <div class="inactive-tab-container">
+        <div class="inactive-tab-header">
+            <img src="https://ok12static.oktacdn.com/fs/bco/1/fs0a437k3lK5pa4Wx5d7" alt="ApplyBoard" class="report-org-logo">
+            <div class="divider"></div>
+        </div>
+        <div class="inactive-tab-content">
+            <h2 class="inactive-tab-content-title">The page has timed out</h2>
+            <p class="inactive-tab-details">If this page does not reload automatically, please refresh your browser.</p>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" nonce="Z1IpE2TNO8BgzMBradHdnA">
+  var signInSuccessCallBackFunction;
+  var oktaData = {"redirectUri":"https\x3A\x2F\x2Faccounts.applyboard.com\x2Foauth2\x2Fdefault\x2Fv1\x2Fauthorize\x3Fclient_id\x3D0oasbh5xhhoozpCwp5d6\x26redirect_uri\x3Dhttps\x253A\x252F\x252Fwww.applyboard.com\x252Fusers\x252Fauth\x252Foktaoauth\x252Fcallback\x26response_type\x3Dcode\x26scope\x3Dopenid\x2Bprofile\x2Bemail\x2Boffline_access\x26state\x3Db77431ea4c500dd33433be2db2ba2a468e60d695d666b30e","isMobileSso":false,"orgSyncToAccountChooserEnabled":true,"fromUri":"","isMobileClientLogin":false,"requestContext":{"app":{"type":"object","value":{"name":"oidc_client","label":"ApplyBoard\x20Web\x20Site","id":"0oasbh5xhhoozpCwp5d6"}},"authentication":{"request":{"max_age":-1,"scope":"openid\x20profile\x20email\x20offline_access","display":"page","response_type":"code","redirect_uri":"https\x3A\x2F\x2Fwww.applyboard.com\x2Fusers\x2Fauth\x2Foktaoauth\x2Fcallback","state":"b77431ea4c500dd33433be2db2ba2a468e60d695d666b30e","response_mode":"query"},"protocol":{},"client":{"name":"oidc_client","label":"ApplyBoard\x20Web\x20Site","id":"0oasbh5xhhoozpCwp5d6"},"type":"object","value":{"request":{"max_age":-1,"scope":"openid\x20profile\x20email\x20offline_access","display":"page","response_type":"code","redirect_uri":"https\x3A\x2F\x2Fwww.applyboard.com\x2Fusers\x2Fauth\x2Foktaoauth\x2Fcallback","state":"b77431ea4c500dd33433be2db2ba2a468e60d695d666b30e","response_mode":"query"},"protocol":{},"issuer":{"name":"default","id":"ausoggqh4Lok8j6tv5d6","uri":"https\x3A\x2F\x2Faccounts.applyboard.com\x2Foauth2\x2Fdefault"}},"issuer":{"name":"default","id":"ausoggqh4Lok8j6tv5d6","uri":"https\x3A\x2F\x2Faccounts.applyboard.com\x2Foauth2\x2Fdefault"}},"target":{"clientId":"0oasbh5xhhoozpCwp5d6","name":"oidc_client","label":"ApplyBoard\x20Web\x20Site"}},"countryIso":"BD","inactiveTab":{"elementId":"inactive\x2Dtab\x2Dmain\x2Ddiv","avoidPageRefresh":true,"enabled":true},"signIn":{"logoText":"ApplyBoard\x20logo","brandName":"ApplyBoard","language":"en","consent":{"cancel":function(){window.location.href='https\x3A\x2F\x2Faccounts.applyboard.com\x2Flogin\x2Ftoken\x2Fredirect\x3FstateToken\x3DeyJ6aXAiOiJERUYiLCJhbGlhcyI6ImVuY3J5cHRpb25rZXkiLCJ2ZXIiOiIxIiwib2lkIjoiMDBvb2dla2tpbmVKcEluMm41ZDYiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiZGlyIn0..r8w\x2Dq_F9GLI2NW9s.y84lSTCYvSBT2of4ZmBtwn8jflBSJeuKxHLDhv59Db93KIkUq5WxZxYF5Rwidxmjk9ztI5LzC7WdGofh4bpBZmOVrRqHW6WYXr5gfD3o4_1EtzuGOABcrA43FIAvJjHIE9WLegYlpv4xRiR6RaBIxMqrzgqYig2FiClAtassoOhGbM8\x2DEt7sddf6KPEqQcStSkZMbcrjILU6FKKq8BLpRJ6LbN_Sgj7Ph9HO6dNtRJhOjDBiYIH3YFrapTyrTo3cg4bc4eGNAFTdkJoKU281Ujc8z1HNOv1xNtB9_O013hYq03mwAXY1pGdgp1InwXFkOy\x2DliTMhPmhkrPS6m75LNaLferVPOGhxcuZeMGx4kRewLHgr9SH\x2DtuIzpaybOKhrl4zwVQumZmi1o2dhro5uqjVbLMBProUX7sv0eynMThiMKSZPFZnjYzj_fOl4QscCYANE_eOJKlbvnfyiDP8DCTmag9CYA3eFlJHsk4cUR8nAJ2YOMhb35F7jjHMQx9Y3QpfyFNKN5mF4Xmn10o6tee4xuzYadJ5QBLCXU2PN6FOLs5v3utxYTwDvNEresH4xUEBEEaNjjg9dVRJPA3R_A7Y2P2bi\x2Dn7xHeZDq2la2MIPP7X7GvKDMUOP2bPrGXYyCdWkWKgqtpcUYzI2PB0UIcZub0jqU_EZe1t0qiXU636sEAUNd0hD6MheGa90o4P9JmVNogQ94ojMDshS1e0ewFLFnKCIqZ0yo6zDwtwtL2R16dPLZZFNIZOsNmmHAXhoYSs16IUkV2LISqO_kW_Wn_jZv79IeEo_i\x2DyDw2T4iKC1OSxpMt1lBKvUFfqEMMvoXc97ewCOFykZSr9mBNsCF4HPpqMra5O4TCu\x2DH0iRNzWavz5IAERxshkcEEYvKryYsoBzW0VXnbCSyK\x2DRzda3T\x2DmnVI8ez5WIUZXT6WvVIULULUSP9MsAs1vgXcAO9h0KzkiH\x2DnQ7MnMdzNPFZtFy6vGCWXxuRmTAmCPT1y3of1vP7_rThkEAuAFDIoDDRU8xrE_9zzJ7hLXFaSQDOC\x2D_4l1cTxyR6oK0SRkcBV7aax2vOerFxpd6r7lSJqwMyBzgdZRQCywNoUqWZQbtmAMxHudHa63fj2kV1db0CCCF8IGabIZV4fP5j6aziLexBrCYzQoS\x2DhFXYAVkkFfPV6JB1_XagEH\x2DzHIaR2gkBYa9N5BZaEC6t5NBGqh\x2DYgOAT9XO8_x4gkwxMzKevRD79uGOVDdX4AcE3X6fe_PF4Jzsv\x2DEKm0g6P_W8YjqP9l5AmttlLFk59SE9yoPCaTlaHq02wEXQCKppUb71Z5lpE9M2NbGRrveU38UijvCPy6_rIWPbvEJxhieDC40lUaF_VYEckCqFQT\x2DA9LnQbF5Ac_R7U5UsKZ78sMAHuFrm5EY4RdrnFV0wl0UvO7rBptRP2SSzWYhqYWWD1qKBAbfz1yak6xC093YtmKykSjaM0HuWvjoo6cJVb8CJWbxChTOz\x2DgvLF_2anQINhyFEyYL5a4gIEF7f5xPoThBJPwwDQKSzRbaCvQlEM4u2eZsfAdIg\x2DVlx5fSnblALjE1W3zLZFY7uYr9L7K0n6nYSjsBunBf3rXSj_x0dmRBYR5wQcJ9039Acm5J4mv8Uquh885g3nfa2y4JirHlH_AeaSFWAD\x2Du5YcyxXBTbLydOfGsFKYqAj0vsvDcr9oNFUrqSCSzpKhQ3JB_InvurfkW6kbfRTrhj2R_40ZfSTj8TCjMKWEbhKHPL1ROUJn5T0BKAvQZRCe8GoQViM7CW97C\x2DDXTG6GwXJb2CahgZ2LCaYJaQmhAUY6U7\x2DQDlbUMCUuPOjLNbd8N6CmKeFuff6T6Dhas8yUA6rFcSRXO8jU6EblsiyS1EvYxLPkWtqK6X8t5LqMct7ygABUkclMxiEt39d8r4Phrg9E4hpa61pjLehA__1DS5sSFCtGCpm6oDmx3eMjo6MXbwuydlZThHl4EcJs9_vhWC4Eo1ytdIJgtEv9tA0_GQvc802iYiT3kE0OzkMHQDwEaG9r2nCV_fWA1AYxh_RtC1slru90q7jSHrjZLbZ6IzLnysJcOlN97CLKjkNV6PTuxlrY7WnL__eoHniO9dHX9PDZBw0OKHQKkIU7XlqQDcMB5DKrAxJLTvOHaB2frdIz5juzEgdB6mYpNVqI_jX\x2Dd8yy9fhLU\x2DOS1LT6w5tWvLBAukuzhcKJogBg5uF2z5KlkVf_6kqES_eeFRFRhaVkX6GOuNUg3D8tywxjoGcCDszJkvFHWii5b7kASpnQjkxkCGlClhvuZTYAU7F5jPYn9aMeDZcZtbWl9hD\x2DrNoMbvUQ0LTwhVdQUh6kj39AI0TEYWPzwdbqmFkSFKUxHCLO4t8iS32Gq5ztot2SxSlJMxeEnFET1QrZ1uZKK3YdiW1VBkCI7YkNqAdfzgNbo2D73Qw8YMJ91pIwt_bk2K52INwtGELB\x2D43lRW\x2DD6VNYyQ\x2DK5E6tguVrGNpsZ2eAByvoyMMSl3Lg5VCwCACVSIoJXQNqjkrUK46XmDCIvzNU1Zatbwiubtdik7i8Lvmxke_Pd0gYTKOdgqX9fkab6c7KQk8QQHv9s4UOP0qtQrtXqACkdmFsSMNSxIo4iVEa0cYoUOuH9OQsU1hxdrJZoh9SGo3mHPXDMrhrfebbcj79T0cvZBxQVmQreqSYgJJaodzrNzhyn_zGqzzBkE5pHJupMEALX7x0TIsujEK7A2OQpBZaDE\x2DGMe9rjRHNQfNl1dJA45aFpYLhM3RTbAfNBseYVf2RLaLDixdj5m18zGAcWsMFsV5qzIzB2xflfLnbhRfVTi6QxTsZrtGrq2nPnf6KcqjU5JnI4zceCFF6jLs19Z73DgGZOBS3Esu61ja_fVBjYXx8XHbfjfgr\x2DyMjQBFXU7GDDrLo5HXxT8g4SOEvAx4XVTzbejKhIpH_kUaH9dBDoFY53v0MRMJ0NWhuasw095duTJws62R1I_OkQsPc1XDXQUiERptaUHsDdr86Jnvwtwt0VvRzzK1Nx6iN_\x2DCmUR9noZf9xAtHNW_v\x2DIrEwZF3Ksa4X8Xt\x2Djotg28c1qv8739F9eJBj071Kcsm_gMozS2rF_NkrZBnK14ff7AdPq6cIHB5riT8Ncq7ZKM1BseP0p0jJHaQK5VgcNCTURS6mJJctzV9itFa4OoCwLLS5ZVROB6_STKwj4N5OeEsYBI3PqgIvOzY8FGCcn7d333qwkvBXR4q3YzaRZDVBoVvf8wJgp6FdP2mV0T8XgAc8RuNuI\x2D_FHGY_0bCDKqeBfcOhskIhEAAOeJWEh_PyfN1VHQuCv_Nd1PhesaDNTzXSSOM47B6OHlAtIknPx_uvExpU7OQ97WaxO7u5SypjasLhfZPhNpA694K\x2DebL0eLDsH9b3lYSAmZQqYkiNgSs8s4Dt7k7R4\x2DSk_kXrXj\x2DKMRb3lMtOhiI7hbVJTOSUidw_NqLgf7sAPtBgU1XQB72GDUMYio2aNFrsRH4CAOTFrk9eI3jCj4Dt\x2DE\x2D5sevm_HF2pb6weiP2SB4T9FBCJBhe\x2D35IUzYWHerIKsHuHPeuce0p0UErvm0YWGr7kGsNoZSE16isLioM1ukTRH8IwfOvLAj9QeAFQB6qA016K5b40IZw4akSl7oGZ0j_HAXHvwHaoAK_yu5JdNsIzrlFp5TxLe2Zchu6zUBCZzgi9kTEx3yU1KhUzXpihWxcuhVSXXJJygDVtXgJyIyoOsoAiHpM0Os59aVY\x2DD9PPvk21IItYIuTkgOe8OZZGLD9UKW_7FHVUFUJU4orcffdMMO_UWXyBPD25M9zWUcaR\x2DRivPTSzdkoI3wDgoAHj07kBoD9WHz6ptkzUzu4qu8\x2DH0fPFGavCsU_w3KJkBscft1sonWwQhJR1LD0CAO13nq6\x2DpKjlyw4gaZ1XBR8MTNXPrnENf6TO\x2DdG\x2Ddx5CylZNr0XmHO_mJyrZ9RZmFqz4pwCcQTU4emqfMi_AxiOxwYp1h0mCB0UE481td\x2DdLK8sU9iTe.WimTbJJct1Sfn6UJZJ0krg';}},"i18n":{"en":{"mfa.challenge.password.placeholder":"Password","help":"Help","password.forgot.email.or.username.tooltip":"Email\x20or\x20Username","needhelp":"Need\x20help\x20signing\x20in\x3F","primaryauth.username.placeholder":"Username","password.forgot.email.or.username.placeholder":"Email\x20or\x20Username","account.unlock.email.or.username.tooltip":"Email\x20or\x20Username","unlockaccount":"Unlock\x20account\x3F","account.unlock.email.or.username.placeholder":"Email\x20or\x20Username","primaryauth.password.placeholder":"Password","primaryauth.title":"Log\x20In","forgotpassword":"Forgot\x20password\x3F"}},"features":{"isBotProtectionEnabled":false,"hideSignOutLinkInMFA":false,"emailRecovery":true,"deviceFingerprinting":true,"showIdentifier":true,"consent":true,"useDeviceFingerprintForSecurityImage":true,"customExpiredPassword":true,"router":true,"showPasswordToggleOnSignInPage":true,"securityImage":false,"autoPush":true,"smsRecovery":false,"idpDiscovery":false,"selfServiceUnlock":true,"webauthn":true,"passwordlessAuth":true,"showPasswordRequirementsAsHtmlList":true,"registration":false,"rememberMe":true,"callRecovery":false,"multiOptionalFactorEnroll":true},"baseUrl":"https\x3A\x2F\x2Faccounts.applyboard.com","assets":{"baseUrl":"https\x3A\x2F\x2Fok12static.oktacdn.com\x2Fassets\x2Fjs\x2Fsdk\x2Fokta\x2Dsignin\x2Dwidget\x2F5.16.1"},"customButtons":[],"idpDiscovery":{"requestContext":"eyJ6aXAiOiJERUYiLCJhbGlhcyI6ImVuY3J5cHRpb25rZXkiLCJ2ZXIiOiIxIiwib2lkIjoiMDBvb2dla2tpbmVKcEluMm41ZDYiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiZGlyIn0..r8w\x2Dq_F9GLI2NW9s.y84lSTCYvSBT2of4ZmBtwn8jflBSJeuKxHLDhv59Db93KIkUq5WxZxYF5Rwidxmjk9ztI5LzC7WdGofh4bpBZmOVrRqHW6WYXr5gfD3o4_1EtzuGOABcrA43FIAvJjHIE9WLegYlpv4xRiR6RaBIxMqrzgqYig2FiClAtassoOhGbM8\x2DEt7sddf6KPEqQcStSkZMbcrjILU6FKKq8BLpRJ6LbN_Sgj7Ph9HO6dNtRJhOjDBiYIH3YFrapTyrTo3cg4bc4eGNAFTdkJoKU281Ujc8z1HNOv1xNtB9_O013hYq03mwAXY1pGdgp1InwXFkOy\x2DliTMhPmhkrPS6m75LNaLferVPOGhxcuZeMGx4kRewLHgr9SH\x2DtuIzpaybOKhrl4zwVQumZmi1o2dhro5uqjVbLMBProUX7sv0eynMThiMKSZPFZnjYzj_fOl4QscCYANE_eOJKlbvnfyiDP8DCTmag9CYA3eFlJHsk4cUR8nAJ2YOMhb35F7jjHMQx9Y3QpfyFNKN5mF4Xmn10o6tee4xuzYadJ5QBLCXU2PN6FOLs5v3utxYTwDvNEresH4xUEBEEaNjjg9dVRJPA3R_A7Y2P2bi\x2Dn7xHeZDq2la2MIPP7X7GvKDMUOP2bPrGXYyCdWkWKgqtpcUYzI2PB0UIcZub0jqU_EZe1t0qiXU636sEAUNd0hD6MheGa90o4P9JmVNogQ94ojMDshS1e0ewFLFnKCIqZ0yo6zDwtwtL2R16dPLZZFNIZOsNmmHAXhoYSs16IUkV2LISqO_kW_Wn_jZv79IeEo_i\x2DyDw2T4iKC1OSxpMt1lBKvUFfqEMMvoXc97ewCOFykZSr9mBNsCF4HPpqMra5O4TCu\x2DH0iRNzWavz5IAERxshkcEEYvKryYsoBzW0VXnbCSyK\x2DRzda3T\x2DmnVI8ez5WIUZXT6WvVIULULUSP9MsAs1vgXcAO9h0KzkiH\x2DnQ7MnMdzNPFZtFy6vGCWXxuRmTAmCPT1y3of1vP7_rThkEAuAFDIoDDRU8xrE_9zzJ7hLXFaSQDOC\x2D_4l1cTxyR6oK0SRkcBV7aax2vOerFxpd6r7lSJqwMyBzgdZRQCywNoUqWZQbtmAMxHudHa63fj2kV1db0CCCF8IGabIZV4fP5j6aziLexBrCYzQoS\x2DhFXYAVkkFfPV6JB1_XagEH\x2DzHIaR2gkBYa9N5BZaEC6t5NBGqh\x2DYgOAT9XO8_x4gkwxMzKevRD79uGOVDdX4AcE3X6fe_PF4Jzsv\x2DEKm0g6P_W8YjqP9l5AmttlLFk59SE9yoPCaTlaHq02wEXQCKppUb71Z5lpE9M2NbGRrveU38UijvCPy6_rIWPbvEJxhieDC40lUaF_VYEckCqFQT\x2DA9LnQbF5Ac_R7U5UsKZ78sMAHuFrm5EY4RdrnFV0wl0UvO7rBptRP2SSzWYhqYWWD1qKBAbfz1yak6xC093YtmKykSjaM0HuWvjoo6cJVb8CJWbxChTOz\x2DgvLF_2anQINhyFEyYL5a4gIEF7f5xPoThBJPwwDQKSzRbaCvQlEM4u2eZsfAdIg\x2DVlx5fSnblALjE1W3zLZFY7uYr9L7K0n6nYSjsBunBf3rXSj_x0dmRBYR5wQcJ9039Acm5J4mv8Uquh885g3nfa2y4JirHlH_AeaSFWAD\x2Du5YcyxXBTbLydOfGsFKYqAj0vsvDcr9oNFUrqSCSzpKhQ3JB_InvurfkW6kbfRTrhj2R_40ZfSTj8TCjMKWEbhKHPL1ROUJn5T0BKAvQZRCe8GoQViM7CW97C\x2DDXTG6GwXJb2CahgZ2LCaYJaQmhAUY6U7\x2DQDlbUMCUuPOjLNbd8N6CmKeFuff6T6Dhas8yUA6rFcSRXO8jU6EblsiyS1EvYxLPkWtqK6X8t5LqMct7ygABUkclMxiEt39d8r4Phrg9E4hpa61pjLehA__1DS5sSFCtGCpm6oDmx3eMjo6MXbwuydlZThHl4EcJs9_vhWC4Eo1ytdIJgtEv9tA0_GQvc802iYiT3kE0OzkMHQDwEaG9r2nCV_fWA1AYxh_RtC1slru90q7jSHrjZLbZ6IzLnysJcOlN97CLKjkNV6PTuxlrY7WnL__eoHniO9dHX9PDZBw0OKHQKkIU7XlqQDcMB5DKrAxJLTvOHaB2frdIz5juzEgdB6mYpNVqI_jX\x2Dd8yy9fhLU\x2DOS1LT6w5tWvLBAukuzhcKJogBg5uF2z5KlkVf_6kqES_eeFRFRhaVkX6GOuNUg3D8tywxjoGcCDszJkvFHWii5b7kASpnQjkxkCGlClhvuZTYAU7F5jPYn9aMeDZcZtbWl9hD\x2DrNoMbvUQ0LTwhVdQUh6kj39AI0TEYWPzwdbqmFkSFKUxHCLO4t8iS32Gq5ztot2SxSlJMxeEnFET1QrZ1uZKK3YdiW1VBkCI7YkNqAdfzgNbo2D73Qw8YMJ91pIwt_bk2K52INwtGELB\x2D43lRW\x2DD6VNYyQ\x2DK5E6tguVrGNpsZ2eAByvoyMMSl3Lg5VCwCACVSIoJXQNqjkrUK46XmDCIvzNU1Zatbwiubtdik7i8Lvmxke_Pd0gYTKOdgqX9fkab6c7KQk8QQHv9s4UOP0qtQrtXqACkdmFsSMNSxIo4iVEa0cYoUOuH9OQsU1hxdrJZoh9SGo3mHPXDMrhrfebbcj79T0cvZBxQVmQreqSYgJJaodzrNzhyn_zGqzzBkE5pHJupMEALX7x0TIsujEK7A2OQpBZaDE\x2DGMe9rjRHNQfNl1dJA45aFpYLhM3RTbAfNBseYVf2RLaLDixdj5m18zGAcWsMFsV5qzIzB2xflfLnbhRfVTi6QxTsZrtGrq2nPnf6KcqjU5JnI4zceCFF6jLs19Z73DgGZOBS3Esu61ja_fVBjYXx8XHbfjfgr\x2DyMjQBFXU7GDDrLo5HXxT8g4SOEvAx4XVTzbejKhIpH_kUaH9dBDoFY53v0MRMJ0NWhuasw095duTJws62R1I_OkQsPc1XDXQUiERptaUHsDdr86Jnvwtwt0VvRzzK1Nx6iN_\x2DCmUR9noZf9xAtHNW_v\x2DIrEwZF3Ksa4X8Xt\x2Djotg28c1qv8739F9eJBj071Kcsm_gMozS2rF_NkrZBnK14ff7AdPq6cIHB5riT8Ncq7ZKM1BseP0p0jJHaQK5VgcNCTURS6mJJctzV9itFa4OoCwLLS5ZVROB6_STKwj4N5OeEsYBI3PqgIvOzY8FGCcn7d333qwkvBXR4q3YzaRZDVBoVvf8wJgp6FdP2mV0T8XgAc8RuNuI\x2D_FHGY_0bCDKqeBfcOhskIhEAAOeJWEh_PyfN1VHQuCv_Nd1PhesaDNTzXSSOM47B6OHlAtIknPx_uvExpU7OQ97WaxO7u5SypjasLhfZPhNpA694K\x2DebL0eLDsH9b3lYSAmZQqYkiNgSs8s4Dt7k7R4\x2DSk_kXrXj\x2DKMRb3lMtOhiI7hbVJTOSUidw_NqLgf7sAPtBgU1XQB72GDUMYio2aNFrsRH4CAOTFrk9eI3jCj4Dt\x2DE\x2D5sevm_HF2pb6weiP2SB4T9FBCJBhe\x2D35IUzYWHerIKsHuHPeuce0p0UErvm0YWGr7kGsNoZSE16isLioM1ukTRH8IwfOvLAj9QeAFQB6qA016K5b40IZw4akSl7oGZ0j_HAXHvwHaoAK_yu5JdNsIzrlFp5TxLe2Zchu6zUBCZzgi9kTEx3yU1KhUzXpihWxcuhVSXXJJygDVtXgJyIyoOsoAiHpM0Os59aVY\x2DD9PPvk21IItYIuTkgOe8OZZGLD9UKW_7FHVUFUJU4orcffdMMO_UWXyBPD25M9zWUcaR\x2DRivPTSzdkoI3wDgoAHj07kBoD9WHz6ptkzUzu4qu8\x2DH0fPFGavCsU_w3KJkBscft1sonWwQhJR1LD0CAO13nq6\x2DpKjlyw4gaZ1XBR8MTNXPrnENf6TO\x2DdG\x2Ddx5CylZNr0XmHO_mJyrZ9RZmFqz4pwCcQTU4emqfMi_AxiOxwYp1h0mCB0UE481td\x2DdLK8sU9iTe.WimTbJJct1Sfn6UJZJ0krg"},"logo":"https\x3A\x2F\x2Fok12static.oktacdn.com\x2Ffs\x2Fbco\x2F1\x2Ffs0a437k3lK5pa4Wx5d7","stateToken":"eyJ6aXAiOiJERUYiLCJhbGlhcyI6ImVuY3J5cHRpb25rZXkiLCJ2ZXIiOiIxIiwib2lkIjoiMDBvb2dla2tpbmVKcEluMm41ZDYiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiZGlyIn0..r8w\x2Dq_F9GLI2NW9s.y84lSTCYvSBT2of4ZmBtwn8jflBSJeuKxHLDhv59Db93KIkUq5WxZxYF5Rwidxmjk9ztI5LzC7WdGofh4bpBZmOVrRqHW6WYXr5gfD3o4_1EtzuGOABcrA43FIAvJjHIE9WLegYlpv4xRiR6RaBIxMqrzgqYig2FiClAtassoOhGbM8\x2DEt7sddf6KPEqQcStSkZMbcrjILU6FKKq8BLpRJ6LbN_Sgj7Ph9HO6dNtRJhOjDBiYIH3YFrapTyrTo3cg4bc4eGNAFTdkJoKU281Ujc8z1HNOv1xNtB9_O013hYq03mwAXY1pGdgp1InwXFkOy\x2DliTMhPmhkrPS6m75LNaLferVPOGhxcuZeMGx4kRewLHgr9SH\x2DtuIzpaybOKhrl4zwVQumZmi1o2dhro5uqjVbLMBProUX7sv0eynMThiMKSZPFZnjYzj_fOl4QscCYANE_eOJKlbvnfyiDP8DCTmag9CYA3eFlJHsk4cUR8nAJ2YOMhb35F7jjHMQx9Y3QpfyFNKN5mF4Xmn10o6tee4xuzYadJ5QBLCXU2PN6FOLs5v3utxYTwDvNEresH4xUEBEEaNjjg9dVRJPA3R_A7Y2P2bi\x2Dn7xHeZDq2la2MIPP7X7GvKDMUOP2bPrGXYyCdWkWKgqtpcUYzI2PB0UIcZub0jqU_EZe1t0qiXU636sEAUNd0hD6MheGa90o4P9JmVNogQ94ojMDshS1e0ewFLFnKCIqZ0yo6zDwtwtL2R16dPLZZFNIZOsNmmHAXhoYSs16IUkV2LISqO_kW_Wn_jZv79IeEo_i\x2DyDw2T4iKC1OSxpMt1lBKvUFfqEMMvoXc97ewCOFykZSr9mBNsCF4HPpqMra5O4TCu\x2DH0iRNzWavz5IAERxshkcEEYvKryYsoBzW0VXnbCSyK\x2DRzda3T\x2DmnVI8ez5WIUZXT6WvVIULULUSP9MsAs1vgXcAO9h0KzkiH\x2DnQ7MnMdzNPFZtFy6vGCWXxuRmTAmCPT1y3of1vP7_rThkEAuAFDIoDDRU8xrE_9zzJ7hLXFaSQDOC\x2D_4l1cTxyR6oK0SRkcBV7aax2vOerFxpd6r7lSJqwMyBzgdZRQCywNoUqWZQbtmAMxHudHa63fj2kV1db0CCCF8IGabIZV4fP5j6aziLexBrCYzQoS\x2DhFXYAVkkFfPV6JB1_XagEH\x2DzHIaR2gkBYa9N5BZaEC6t5NBGqh\x2DYgOAT9XO8_x4gkwxMzKevRD79uGOVDdX4AcE3X6fe_PF4Jzsv\x2DEKm0g6P_W8YjqP9l5AmttlLFk59SE9yoPCaTlaHq02wEXQCKppUb71Z5lpE9M2NbGRrveU38UijvCPy6_rIWPbvEJxhieDC40lUaF_VYEckCqFQT\x2DA9LnQbF5Ac_R7U5UsKZ78sMAHuFrm5EY4RdrnFV0wl0UvO7rBptRP2SSzWYhqYWWD1qKBAbfz1yak6xC093YtmKykSjaM0HuWvjoo6cJVb8CJWbxChTOz\x2DgvLF_2anQINhyFEyYL5a4gIEF7f5xPoThBJPwwDQKSzRbaCvQlEM4u2eZsfAdIg\x2DVlx5fSnblALjE1W3zLZFY7uYr9L7K0n6nYSjsBunBf3rXSj_x0dmRBYR5wQcJ9039Acm5J4mv8Uquh885g3nfa2y4JirHlH_AeaSFWAD\x2Du5YcyxXBTbLydOfGsFKYqAj0vsvDcr9oNFUrqSCSzpKhQ3JB_InvurfkW6kbfRTrhj2R_40ZfSTj8TCjMKWEbhKHPL1ROUJn5T0BKAvQZRCe8GoQViM7CW97C\x2DDXTG6GwXJb2CahgZ2LCaYJaQmhAUY6U7\x2DQDlbUMCUuPOjLNbd8N6CmKeFuff6T6Dhas8yUA6rFcSRXO8jU6EblsiyS1EvYxLPkWtqK6X8t5LqMct7ygABUkclMxiEt39d8r4Phrg9E4hpa61pjLehA__1DS5sSFCtGCpm6oDmx3eMjo6MXbwuydlZThHl4EcJs9_vhWC4Eo1ytdIJgtEv9tA0_GQvc802iYiT3kE0OzkMHQDwEaG9r2nCV_fWA1AYxh_RtC1slru90q7jSHrjZLbZ6IzLnysJcOlN97CLKjkNV6PTuxlrY7WnL__eoHniO9dHX9PDZBw0OKHQKkIU7XlqQDcMB5DKrAxJLTvOHaB2frdIz5juzEgdB6mYpNVqI_jX\x2Dd8yy9fhLU\x2DOS1LT6w5tWvLBAukuzhcKJogBg5uF2z5KlkVf_6kqES_eeFRFRhaVkX6GOuNUg3D8tywxjoGcCDszJkvFHWii5b7kASpnQjkxkCGlClhvuZTYAU7F5jPYn9aMeDZcZtbWl9hD\x2DrNoMbvUQ0LTwhVdQUh6kj39AI0TEYWPzwdbqmFkSFKUxHCLO4t8iS32Gq5ztot2SxSlJMxeEnFET1QrZ1uZKK3YdiW1VBkCI7YkNqAdfzgNbo2D73Qw8YMJ91pIwt_bk2K52INwtGELB\x2D43lRW\x2DD6VNYyQ\x2DK5E6tguVrGNpsZ2eAByvoyMMSl3Lg5VCwCACVSIoJXQNqjkrUK46XmDCIvzNU1Zatbwiubtdik7i8Lvmxke_Pd0gYTKOdgqX9fkab6c7KQk8QQHv9s4UOP0qtQrtXqACkdmFsSMNSxIo4iVEa0cYoUOuH9OQsU1hxdrJZoh9SGo3mHPXDMrhrfebbcj79T0cvZBxQVmQreqSYgJJaodzrNzhyn_zGqzzBkE5pHJupMEALX7x0TIsujEK7A2OQpBZaDE\x2DGMe9rjRHNQfNl1dJA45aFpYLhM3RTbAfNBseYVf2RLaLDixdj5m18zGAcWsMFsV5qzIzB2xflfLnbhRfVTi6QxTsZrtGrq2nPnf6KcqjU5JnI4zceCFF6jLs19Z73DgGZOBS3Esu61ja_fVBjYXx8XHbfjfgr\x2DyMjQBFXU7GDDrLo5HXxT8g4SOEvAx4XVTzbejKhIpH_kUaH9dBDoFY53v0MRMJ0NWhuasw095duTJws62R1I_OkQsPc1XDXQUiERptaUHsDdr86Jnvwtwt0VvRzzK1Nx6iN_\x2DCmUR9noZf9xAtHNW_v\x2DIrEwZF3Ksa4X8Xt\x2Djotg28c1qv8739F9eJBj071Kcsm_gMozS2rF_NkrZBnK14ff7AdPq6cIHB5riT8Ncq7ZKM1BseP0p0jJHaQK5VgcNCTURS6mJJctzV9itFa4OoCwLLS5ZVROB6_STKwj4N5OeEsYBI3PqgIvOzY8FGCcn7d333qwkvBXR4q3YzaRZDVBoVvf8wJgp6FdP2mV0T8XgAc8RuNuI\x2D_FHGY_0bCDKqeBfcOhskIhEAAOeJWEh_PyfN1VHQuCv_Nd1PhesaDNTzXSSOM47B6OHlAtIknPx_uvExpU7OQ97WaxO7u5SypjasLhfZPhNpA694K\x2DebL0eLDsH9b3lYSAmZQqYkiNgSs8s4Dt7k7R4\x2DSk_kXrXj\x2DKMRb3lMtOhiI7hbVJTOSUidw_NqLgf7sAPtBgU1XQB72GDUMYio2aNFrsRH4CAOTFrk9eI3jCj4Dt\x2DE\x2D5sevm_HF2pb6weiP2SB4T9FBCJBhe\x2D35IUzYWHerIKsHuHPeuce0p0UErvm0YWGr7kGsNoZSE16isLioM1ukTRH8IwfOvLAj9QeAFQB6qA016K5b40IZw4akSl7oGZ0j_HAXHvwHaoAK_yu5JdNsIzrlFp5TxLe2Zchu6zUBCZzgi9kTEx3yU1KhUzXpihWxcuhVSXXJJygDVtXgJyIyoOsoAiHpM0Os59aVY\x2DD9PPvk21IItYIuTkgOe8OZZGLD9UKW_7FHVUFUJU4orcffdMMO_UWXyBPD25M9zWUcaR\x2DRivPTSzdkoI3wDgoAHj07kBoD9WHz6ptkzUzu4qu8\x2DH0fPFGavCsU_w3KJkBscft1sonWwQhJR1LD0CAO13nq6\x2DpKjlyw4gaZ1XBR8MTNXPrnENf6TO\x2DdG\x2Ddx5CylZNr0XmHO_mJyrZ9RZmFqz4pwCcQTU4emqfMi_AxiOxwYp1h0mCB0UE481td\x2DdLK8sU9iTe.WimTbJJct1Sfn6UJZJ0krg","helpLinks":{"help":"","forgotPassword":"","unlock":"","custom":[]},"piv":{}},"accountChooserDiscoveryUrl":"https\x3A\x2F\x2Flogin.okta.com\x2Fdiscovery\x2Fiframe.html"};
+
+  var runLoginPage = function(fn) {
+    var mainScript = document.createElement('script');
+    mainScript.src = "https://ok12static.oktacdn.com/assets/js/mvc/loginpage/initLoginPage.pack.f45aba2fcd86049fdc0a4446a0b4aa60.js";
+    mainScript.integrity = "sha384-Ti1AVzmYlM/NMC9etUiz87VUWhwg+Bo9yxzyhSC6H+BcvWDdE/RfZIEFxIsvkfcf";
+    mainScript.crossOrigin = "anonymous";
+    document.getElementsByTagName('head')[0].appendChild(mainScript);
+    fn && mainScript.addEventListener('load', function () { setTimeout(fn, 1) });
+  };
+
+  var OktaUtil = {
+    _addClass: function(el, className) {
+      if(el) {
+        var elementClasses = el.className.split(" ");
+        if (elementClasses.indexOf(className) == -1) {
+          el.className += " " + className;
+        }
+      }
+    },
+
+    _removeElement: function(el) {
+      if(el) {
+        el.parentNode.removeChild(el);
+      }
+    },
+
+    _hideElement: function(el) {
+      if(el) {
+        el.style.display = 'none';
+      }
+    },
+
+    _isDocumentVisible: function() {
+      return document.visibilityState === 'visible';
+    },
+
+    addLoginContainerClass: function () {
+      this._addClass(document.getElementById('okta-login-container'), 'login-container');
+    },
+
+    showUnsupportedCookieWarning: function () {
+      document.getElementById('okta-sign-in').removeAttribute('style');
+      document.getElementById('unsupported-cookie').removeAttribute('style');
+    },
+
+    removeUnsupportedCookieWarning: function () {
+      this._removeElement(document.getElementById('okta-sign-in'));
+    },
+
+    hideOktaLoginContainer: function () {
+      this._hideElement(document.getElementById('okta-login-container'));
+    },
+
+    isChromeOs:  function () {
+      return /\bCrOS\b/.test(navigator.userAgent);
+    },
+
+    addChromeOSScript: function() {
+      var chromeOSScript = document.createElement('script');
+      chromeOSScript.src = "/js/google/users-1.0.js";
+      document.getElementsByTagName('head')[0].appendChild(chromeOSScript);
+    },
+
+    getSignInWidgetConfig: function () {
+        if (oktaData.inactiveTab && oktaData.inactiveTab.enabled && !this._isDocumentVisible() && !oktaData.inactiveTab.avoidPageRefresh) {
+            // Show a loading state and wait for the visibility event
+            this.hideOktaLoginContainer();
+            // remove stateToken so SIW does not attempt a login flow
+            oktaData.signIn.stateToken = undefined;
+        }
+        return oktaData.signIn;
+    },
+
+    completeLogin: function (res) {
+      signInSuccessCallBackFunction(res);
+    },
+
+    getRequestContext: function () {
+      return oktaData.requestContext;
+    },
+
+    setRedirectUri: function (uri) {
+      oktaData.redirectUri = uri;
+    },
+
+    init: function () {
+      if (!navigator.cookieEnabled) {
+        this.showUnsupportedCookieWarning();
+        this.hideOktaLoginContainer();
+      } else {
+        this.removeUnsupportedCookieWarning();
+
+        if (oktaData.inactiveTab && oktaData.inactiveTab.enabled && !this._isDocumentVisible()) {
+          try {
+            oktaData.inactiveTab.renderFnBackup = OktaSignIn.prototype.renderEl;
+          } catch (err) {
+            // no op - graceful handling OktaSignIn undefined case
+          }
+
+          // pause render sign-in widget when browser tab is inactive
+          if (!oktaData.inactiveTab.renderFnBackup) {
+            // for older SIW, renderFnBackup is undefined, fallback to full page reload
+            oktaData.inactiveTab.fallbackFullPageReload = true;
+            // Show a loading state and wait for the visibility event
+            this.hideOktaLoginContainer();
+            // remove stateToken so SIW does not attempt a login flow
+            oktaData.signIn.stateToken = undefined;
+          } else {
+            // for newer SIW, override renderEl function so SIW does not attempt a login flow
+            OktaSignIn.prototype.renderEl = function () {
+              oktaData.inactiveTab.renderArgsBackup = arguments;
+              oktaData.inactiveTab.signInInstance = this;
+              try {
+                return new Promise(function (resolve, reject) {
+                  oktaData.inactiveTab.renderResolve = resolve;
+                  oktaData.inactiveTab.renderReject = reject;
+                });
+              } catch (err) {
+                // return nothing if promise is not supported, since promise chaining won't work anyway
+              }
+            }
+          }
+
+          // event handler to resume render sign-in widget
+          document.addEventListener('visibilitychange', function checkVisibilityAndCallSuccess() {
+            if (document.visibilityState === 'visible') {
+              try {
+                document.removeEventListener('visibilitychange', checkVisibilityAndCallSuccess);
+                const inactiveTabDiv = document.getElementById(oktaData.inactiveTab.elementId);
+                inactiveTabDiv.style.display = 'none';
+
+                // resume render sign-in widget
+                if (oktaData.inactiveTab.renderFnBackup && oktaData.inactiveTab.renderArgsBackup) {
+                  OktaSignIn.prototype.renderEl = oktaData.inactiveTab.renderFnBackup;
+                  var result = oktaData.inactiveTab.signInInstance.renderEl.apply(oktaData.inactiveTab.signInInstance, oktaData.inactiveTab.renderArgsBackup);
+                  if (result && result.then) {
+                    result.then(oktaData.inactiveTab.renderResolve, oktaData.inactiveTab.renderReject);
+                  }
+                }
+              } catch (err) {
+                oktaData.inactiveTab.fallbackFullPageReload = true;
+              }
+              if (oktaData.inactiveTab.fallbackFullPageReload) {
+                location.reload();
+              }
+            }
+          });
+        }
+
+        // add class if app login banner is present
+        if (oktaData.isAppBannerVisible) {
+          this.addLoginContainerClass();
+        }
+
+        oktaData.isCustomSignIn = true;
+        oktaData.hasChromeOSFeature = this.isChromeOs();
+        if (oktaData.hasChromeOSFeature) {
+          this.addChromeOSScript();
+        }
+        runLoginPage(function () {
+          var res = OktaLogin.initLoginPage(oktaData);
+          oktaData.signIn = res.signIn;
+          signInSuccessCallBackFunction = res.signInSuccessCallbackFn;
+
+        });
+      }
+    }
+  };
+  OktaUtil.init();
+  //# sourceURL=OktaUtil.js
+</script>
+
+
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+        if (URLSearchParams) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get("mobile") == "true") {
+                document.getElementById("okta-login-container").className += "mobile";
+            }
+        }
+
+        // "config" object contains default widget configuration
+        // with any custom overrides defined in your admin settings.
+        let config = OktaUtil.getSignInWidgetConfig();
+        config.idps = [
+            {
+                type: "GOOGLE",
+                id: "0oa1egcl3rm8JfjNQ5d7",
+            },
+            {
+                type: "APPLE",
+                id: "0oa3ui11huRUaT19L5d7",
+            },
+            {
+                type: "FACEBOOK",
+                id: "0oa2ids1kzvSFbHlY5d7",
+            }
+        ];
+
+        config.i18n = {
+            "en": {
+                "goback": "← Back to Log In",
+                "primaryauth.title": "Log In",
+                "primaryauth.submit": "Log In",
+                "oie.primaryauth.submit": "Log In",
+                "primaryauth.username.placeholder": "Email",
+                "error.username.required": "Email is required",
+                "error.password.required": "Password is required",
+                "socialauth.google.label": "Log In with Google",
+                "socialauth.facebook.label": "Log In with Facebook",
+                "socialauth.apple.label": "Log In with Apple",
+                "password.forgot.email.or.username.placeholder": "Enter your email address to reset your password",
+                "password.forgot.email.or.username.tooltip": "Enter your email address to reset your password",
+                "account.unlock.email.or.username.placeholder": "Enter your email address to send unlock instructions",
+                "account.unlock.email.or.username.tooltip": "Enter your email address to send unlock instructions",
+                "password.forgot.emailSent.title": "Reset email sent",
+                "account.unlock.emailSent.title": "Unlock account email sent",
+                "password.forgot.emailSent.desc": "A link to reset your password has been sent to {0}",
+                "account.unlock.emailSent.desc": "A link to unlock your account has been sent to {0}",
+                "account.unlock.unlocked.desc": "You can log in using your existing email and password.",
+                "oie.selfservice.unlock_user.success.message": "You can log in using your existing email and password.",
+                "remember": "Remember me",
+                "enroll.choices.description": "ApplyBoard requires multifactor authentication to add an additional layer of security when signing in to your account",
+                "enroll.choices.description.generic": "ApplyBoard requires multifactor authentication to add an additional layer of security when signing in to your account",
+                "enroll.choices.description.specific": "ApplyBoard requires multifactor authentication to add an additional layer of security when signing in to your {0} account",
+                "factor.totpSoft.googleAuthenticator": "Authenticator App",
+            },
+        };
+
+        config.helpLinks = {
+            custom: [
+                {
+                    text: "Don’t have an account?",
+                },
+                {
+                    text: "Register as a Student",
+                    href: "https://www.applyboard.com/recommended_programs/onboarding",
+                },
+                {
+                    text: "Register as a Recruitment Partner",
+                    href: "https://www.applyboard.com/new_associate",
+                },
+                {
+                    text: "Privacy & Cookies Policy",
+                    href: "https://www.applyboard.com/privacy-policy",
+                    target: "_blank",
+                },
+                {
+                    text: "Terms & Conditions",
+                    href: "https://www.applyboard.com/terms-and-conditions",
+                    target: "_blank",
+                },
+            ],
+        };
+
+        config.idpDisplay = "SECONDARY";
+        // Render the Okta Sign-In Widget
+        var oktaSignIn = new OktaSignIn(config);
+        oktaSignIn.renderEl({ el: "#okta-login-container" },
+            OktaUtil.completeLogin,
+            function (error) {
+                // Logs errors that occur when configuring the widget.
+                // Remove or replace this with your own custom error handler.
+                console.log(error.message, error);
+            },
+        );
+    </script>
+</body>
+
+</html>

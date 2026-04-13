@@ -7,11 +7,13 @@ Usage:
     python applyboard_scraper.py --debug      # saves raw HTML files for inspection
     python applyboard_scraper.py --no-details # skip detail pages (faster)
     python applyboard_scraper.py --headless   # headless browser
+    python applyboard_scraper.py --login      # prompts for ApplyBoard login
 """
 
 import argparse
 import asyncio
 from getpass import getpass
+import os
 import random
 import re
 import time
@@ -33,6 +35,7 @@ from playwright.async_api import async_playwright, Page
 BASE_URL    = "https://www.applyboard.com/search"
 DETAIL_BASE = "https://www.applyboard.com"
 LOGIN_URL   = "https://accounts.applyboard.com/oauth2/default/v1/authorize?client_id=0oasbh5xhhoozpCwp5d6&redirect_uri=https%3A%2F%2Fwww.applyboard.com%2Fusers%2Fauth%2Foktaoauth%2Fcallback&response_type=code&scope=openid+profile+email+offline_access&state=b77431ea4c500dd33433be2db2ba2a468e60d695d666b30e"
+AGENT_URL   = "https://www.applyboard.com/agent"
 
 # These match the exact flag params in ApplyBoard's search URL
 DEFAULT_FLAGS = {
@@ -54,6 +57,15 @@ STEALTH_MIN    = 1.5
 STEALTH_MAX    = 3.2
 SCROLL_STEPS   = 8
 SCROLL_PAUSE   = 800
+LOGIN_WAIT     = 30_000
+DEFAULT_TIMEOUT = 45_000
+SESSION_STATE_PATH = Path("applyboard_session.json")
+
+SYSTEM_BROWSER_PATHS = [
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+]
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -89,6 +101,22 @@ MONTH_NAME_LOOKUP = {
     "december": "December",
 }
 
+MONTH_TOKEN_PATTERN = (
+    r"Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|"
+    r"Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?"
+)
+
+INTAKE_SECTION_STOP_LABELS = [
+    "Scholarships",
+    "Similar Programs",
+    "Post-Study Work Visa",
+    "Application Fee",
+    "Other Fees",
+    "Admission Requirements",
+    "Academic Background",
+    "Minimum Language Test Scores",
+]
+
 # ──────────────────────────────────────────────────────────────────────────────
 # HELPERS
 # ──────────────────────────────────────────────────────────────────────────────
@@ -96,8 +124,34 @@ MONTH_NAME_LOOKUP = {
 def rand_sleep(lo=STEALTH_MIN, hi=STEALTH_MAX):
     time.sleep(random.uniform(lo, hi))
 
+
+async def human_pause(lo_ms: int = 900, hi_ms: int = 1800) -> None:
+    await asyncio.sleep(random.uniform(lo_ms, hi_ms) / 1000)
+
+
+def has_saved_session() -> bool:
+    return SESSION_STATE_PATH.exists() and SESSION_STATE_PATH.is_file()
+
 def clean(text) -> str:
-    return re.sub(r'\s+', ' ', (text or '').strip())
+    value = (text or "").strip()
+    replacements = {
+        "Â£": "£",
+        "Ł": "£",
+        "Â€": "€",
+        "Â$": "$",
+        "Â ": " ",
+        "Â": "",
+        "â€™": "'",
+        "â€“": "-",
+        "â€”": "-",
+        "â€˜": "'",
+        "â€œ": '"',
+        "â€\x9d": '"',
+        "\xa0": " ",
+    }
+    for bad, good in replacements.items():
+        value = value.replace(bad, good)
+    return re.sub(r'\s+', ' ', value)
 
 
 def strip_ui_noise(text: str) -> str:
@@ -115,6 +169,26 @@ def save_debug_html(html: str, label: str = "page"):
     path = Path(f"debug_{label}_{int(time.time())}.html")
     path.write_text(html, encoding="utf-8")
     print(f"   💾  Debug HTML → {path}")
+
+
+def mask_email(email: str) -> str:
+    if not email or "@" not in email:
+        return "***"
+    name, domain = email.split("@", 1)
+    visible = name[:2] if len(name) > 2 else name[:1]
+    return f"{visible}***@{domain}"
+
+
+def sanitize_filename(value: str, fallback: str = "item") -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", clean(value)).strip("._-")
+    return cleaned[:80] or fallback
+
+
+def get_system_browser_path() -> str | None:
+    for browser_path in SYSTEM_BROWSER_PATHS:
+        if Path(browser_path).exists():
+            return browser_path
+    return None
 
 
 async def wait_for_first_visible(page: Page, selectors: list[str], timeout_ms: int):
@@ -144,6 +218,52 @@ async def click_first_visible(page: Page, selectors: list[str], timeout_ms: int 
                 continue
         await page.wait_for_timeout(250)
     return False
+
+
+async def settle_page(page: Page, pause_ms: int = 1500) -> None:
+    for state in ("domcontentloaded", "load"):
+        try:
+            await page.wait_for_load_state(state, timeout=10_000)
+        except Exception:
+            pass
+    try:
+        await page.wait_for_load_state("networkidle", timeout=5_000)
+    except Exception:
+        pass
+    await human_pause(max(500, pause_ms - 600), pause_ms + 400)
+
+
+def is_logged_in_portal_page(page_url: str, body_text: str) -> bool:
+    current_url = (page_url or "").lower()
+    text = clean(body_text)
+    lowered = text.lower()
+
+    if not current_url.startswith("https://www.applyboard.com/"):
+        return False
+    if "accounts.applyboard.com" in current_url or "unauthorized" in current_url:
+        return False
+    if re.search(r"\blog in\b", text, re.I) and re.search(r"\bregister\b", text, re.I):
+        return False
+
+    portal_markers = [
+        "search",
+        "applications",
+        "students",
+        "recruitment partners",
+        "offers",
+        "commissions",
+        "deals",
+        "messages",
+        "profile",
+        "programs",
+        "schools",
+        "agent",
+        "dashboard",
+    ]
+    if any(marker in lowered for marker in portal_markers):
+        return True
+
+    return len(text) >= 80
 
 
 async def read_locator_value(locator) -> str:
@@ -282,34 +402,163 @@ def has_university_filter_param(url: str) -> bool:
 # BROWSER
 # ──────────────────────────────────────────────────────────────────────────────
 
-async def create_browser(playwright, headless: bool = False):
-    browser = await playwright.chromium.launch(
-        headless=headless,
-        slow_mo=60,
-        args=[
+async def create_browser(playwright, headless: bool = False, storage_state_path: Path | None = None):
+    launch_kwargs = {
+        "headless": headless,
+        "slow_mo": 85,
+        "args": [
             "--no-sandbox",
-            "--disable-blink-features=AutomationControlled",
-            "--disable-infobars",
             "--disable-dev-shm-usage",
         ],
-    )
-    ctx = await browser.new_context(
-        user_agent=random.choice(USER_AGENTS),
-        viewport={"width": 1440, "height": 900},
-        locale="en-US",
-        timezone_id="America/Toronto",
-        extra_http_headers={
+    }
+    try:
+        browser = await playwright.chromium.launch(**launch_kwargs)
+    except Exception as exc:
+        browser_path = get_system_browser_path()
+        if not browser_path:
+            raise RuntimeError(
+                "Could not launch Playwright Chromium, and no system Chrome/Edge browser "
+                "was found. Install Chromium with 'python -m playwright install chromium'."
+            ) from exc
+        print(f"   Using system browser executable -> {browser_path}")
+        browser = await playwright.chromium.launch(
+            executable_path=browser_path,
+            **launch_kwargs,
+        )
+    context_kwargs = {
+        "user_agent": random.choice(USER_AGENTS),
+        "viewport": {"width": 1440, "height": 900},
+        "locale": "en-US",
+        "timezone_id": "America/Toronto",
+        "extra_http_headers": {
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         },
-    )
-    await ctx.add_init_script("""
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3] });
-        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-        window.chrome = { runtime: {}, loadTimes: () => {}, csi: () => {} };
-    """)
+    }
+    if storage_state_path and storage_state_path.exists():
+        context_kwargs["storage_state"] = str(storage_state_path)
+    ctx = await browser.new_context(**context_kwargs)
+    ctx.set_default_timeout(DEFAULT_TIMEOUT)
+    ctx.set_default_navigation_timeout(DEFAULT_TIMEOUT)
     return browser, ctx
+
+
+async def login_to_applyboard(page: Page, email: str, password: str, debug: bool = False) -> None:
+    if not email or not password:
+        raise ValueError("ApplyBoard login requires both an email and password.")
+
+    print(f"\n[login] Logging in to ApplyBoard as {mask_email(email)}")
+    await page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60_000)
+    await page.wait_for_timeout(2_500)
+
+    email_selectors = [
+        'input[name="identifier"]',
+        'input[name="username"]',
+        'input[type="email"]',
+        'input[autocomplete="username"]',
+        'input[placeholder*="email" i]',
+        'input[placeholder*="username" i]',
+    ]
+    password_selectors = [
+        'input[name="credentials.passcode"]',
+        'input[name="password"]',
+        'input[type="password"]',
+        'input[autocomplete="current-password"]',
+        'input[placeholder*="password" i]',
+    ]
+    submit_selectors = [
+        'input[type="submit"]',
+        'button:has-text("Log In")',
+        'button:has-text("Sign In")',
+        'button:has-text("Next")',
+        'button:has-text("Continue")',
+        '[role="button"]:has-text("Log In")',
+        '[role="button"]:has-text("Sign In")',
+    ]
+
+    email_input = await wait_for_first_visible(page, email_selectors, LOGIN_WAIT)
+    if not email_input:
+        if debug:
+            save_debug_html(await page.content(), "login_email_not_found")
+        raise RuntimeError("Could not find the ApplyBoard email input on the login page.")
+
+    await email_input.click()
+    await email_input.fill("")
+    await email_input.type(email, delay=50)
+    await page.wait_for_timeout(500)
+
+    password_input = await wait_for_first_visible(page, password_selectors, 2_500)
+    if not password_input:
+        await click_first_visible(page, submit_selectors, timeout_ms=4_000)
+        password_input = await wait_for_first_visible(page, password_selectors, LOGIN_WAIT)
+
+    if not password_input:
+        if debug:
+            save_debug_html(await page.content(), "login_password_not_found")
+        raise RuntimeError(
+            "The password field did not appear after entering the email. "
+            "ApplyBoard may have changed the login flow."
+        )
+
+    await password_input.click()
+    await password_input.fill(password)
+    await page.wait_for_timeout(400)
+
+    if not await click_first_visible(page, submit_selectors, timeout_ms=5_000):
+        try:
+            await password_input.press("Enter")
+        except Exception:
+            if debug:
+                save_debug_html(await page.content(), "login_submit_not_found")
+            raise RuntimeError("Could not find the ApplyBoard login submit button.")
+
+    try:
+        await page.wait_for_url(lambda url: "accounts.applyboard.com" not in url, timeout=LOGIN_WAIT)
+    except Exception:
+        await page.wait_for_timeout(3_000)
+
+    if "accounts.applyboard.com" in page.url:
+        page_text = clean(await page.locator("body").inner_text())
+        if debug:
+            save_debug_html(await page.content(), "login_not_completed")
+        if re.search(r"(verify|authenticator|multi-factor|security key|one-time passcode)", page_text, re.I):
+            raise RuntimeError(
+                "Login reached an additional verification step (for example MFA). "
+                "Complete that step manually, then rerun the scraper."
+            )
+        if re.search(r"(incorrect|invalid|required|unable to sign in)", page_text, re.I):
+            raise RuntimeError("ApplyBoard rejected the login. Check the email/password and try again.")
+        raise RuntimeError(f"Login did not complete successfully. Current page: {page.url}")
+
+    await page.goto(AGENT_URL, wait_until="domcontentloaded", timeout=60_000)
+    await settle_page(page, pause_ms=2_500)
+
+    agent_text = clean(await page.locator("body").inner_text())
+    if not is_logged_in_portal_page(page.url, agent_text):
+        if debug:
+            save_debug_html(await page.content(), "agent_portal_not_loaded")
+        raise RuntimeError(
+            f"Login succeeded, but the ApplyBoard agent portal did not load as expected. Current page: {page.url}"
+        )
+
+    print(f"   [ok] Logged in successfully -> {page.url}")
+
+
+async def has_active_agent_session(page: Page, debug: bool = False) -> bool:
+    try:
+        await page.goto(AGENT_URL, wait_until="domcontentloaded", timeout=60_000)
+        await settle_page(page, pause_ms=2_200)
+    except Exception:
+        return False
+
+    current_url = page.url.lower()
+    body_text = clean(await page.locator("body").inner_text())
+    if not is_logged_in_portal_page(current_url, body_text):
+        return False
+
+    if debug:
+        print(f"   [session] Active ApplyBoard session detected -> {page.url}")
+    return True
 
 # ──────────────────────────────────────────────────────────────────────────────
 # FILTERS
@@ -714,6 +963,45 @@ def looks_like_institution(text: str) -> bool:
     return any(keyword in normalized for keyword in INSTITUTION_KEYWORDS)
 
 
+def normalize_institution_name(value: str) -> str:
+    cleaned = clean(value)
+    if " - " not in cleaned:
+        return cleaned
+    left, right = [clean(part) for part in cleaned.split(" - ", 1)]
+    if looks_like_institution(left) and right and not looks_like_institution(right):
+        return left
+    return cleaned
+
+
+def looks_like_location_line(value: str) -> bool:
+    cleaned = clean(value)
+    if not cleaned:
+        return False
+    if re.match(r"^[A-Za-z .'-]+,\s*[A-Za-z .'-]+,\s*[A-Z]{2,3}$", cleaned):
+        return True
+    if re.match(r"^[A-Za-z .'-]+,\s*[A-Za-z .'-]+$", cleaned) and len(cleaned) <= 60:
+        return True
+    return False
+
+
+def looks_like_programme_title(value: str) -> bool:
+    cleaned = clean(value)
+    normalized = normalize_text(cleaned)
+    if not normalized or len(cleaned) < 6:
+        return False
+    if looks_like_institution(cleaned) or looks_like_location_line(cleaned):
+        return False
+    if re.fullmatch(r"\d+", cleaned):
+        return False
+    if re.search(r"^(home|overview|admission requirements|scholarships|similar programs|view photos|show more)$", cleaned, re.I):
+        return False
+    if re.search(r"^(open|likely open|closed|instant submission|high job demand|scholarships available|prime|incentivized|popular|fast acceptance)$", cleaned, re.I):
+        return False
+    if re.search(r"\b(bachelor|master|msc|mba|phd|diploma|certificate|degree|law|arts|science|business|engineering|management|program|programme)\b", normalized, re.I):
+        return True
+    return len(cleaned) >= 18 and (" - " in cleaned or len(cleaned.split()) >= 3)
+
+
 def get_card_chunks(card: Tag, max_len: int = 120) -> list[str]:
     chunks = []
     seen = set()
@@ -825,27 +1113,162 @@ def extract_city_value(text: str, chunks: list[str]) -> str:
     return ""
 
 
-def extract_available_intakes(text: str, chunks: list[str]) -> str:
-    month_pattern = r'(?:Jan|January|Feb|February|Mar|March|Apr|April|May|Jun|June|Jul|July|Aug|August|Sep|Sept|September|Oct|October|Nov|November|Dec|December)\s+\d{4}'
+def normalize_campus_city(value: str) -> str:
+    cleaned = clean(value)
+    if not cleaned:
+        return ""
+    first_part = clean(cleaned.split(",", 1)[0])
+    if first_part:
+        return first_part
+    return cleaned
+
+
+def extract_duration_value(text: str, chunks: list[str]) -> str:
+    duration_patterns = [
+        r'\b\d+(?:\.\d+)?\s*(?:years?|yrs?|months?|weeks?)\b',
+        r'\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:year|month|week)s?\b',
+    ]
+    stop_tokens = {"success", "rate", "job", "demand", "scholarship", "available", "open in new tab"}
+
+    def clean_duration_candidate(candidate: str) -> str:
+        value = clean(candidate)
+        for pattern in duration_patterns:
+            match = re.search(pattern, value, re.I)
+            if match:
+                return clean(match.group(0))
+        return ""
+
+    duration_labels = FIELD_LABELS["duration"]
+
+    for chunk in chunks:
+        inline_value = find_chunk_labeled_value([chunk], duration_labels, max_len=120)
+        if inline_value:
+            parsed = clean_duration_candidate(inline_value)
+            if parsed:
+                return parsed
+
+        lowered = normalize_text(chunk)
+        if any(label in lowered for label in duration_labels):
+            parsed = clean_duration_candidate(chunk)
+            if parsed:
+                return parsed
+
+        if not any(token in lowered for token in stop_tokens):
+            parsed = clean_duration_candidate(chunk)
+            if parsed:
+                return parsed
+
+    text_value = find_labeled_value(text, duration_labels, max_len=120)
+    parsed = clean_duration_candidate(text_value)
+    if parsed:
+        return parsed
+
+    for pattern in duration_patterns:
+        match = re.search(pattern, text, re.I)
+        if match:
+            return clean(match.group(0))
+
+    return ""
+
+
+def extract_month_year_values(text: str) -> list[str]:
+    matches = re.findall(rf'\b({MONTH_TOKEN_PATTERN})\s+(20\d{{2}})\b', text or "", re.I)
+    values = []
+    for month_token, year in matches:
+        month_name = MONTH_NAME_LOOKUP.get(month_token.lower())
+        if not month_name:
+            continue
+        value = f"{month_name} {year}"
+        if value not in values:
+            values.append(value)
+    return values
+
+
+def normalize_intake_value(value: str) -> str:
+    intakes = extract_month_year_values(value)
+    if intakes:
+        return ", ".join(intakes)
+    return clean(value)
+
+
+def extract_detail_header_fields(lines: list[str]) -> tuple[str, str]:
+    header_lines = []
+    stop_labels = {
+        "overview",
+        "admission requirements",
+        "scholarships",
+        "similar programs",
+        "program summary",
+    }
+
+    for line in lines[:30]:
+        cleaned = strip_ui_noise(line)
+        normalized = normalize_text(cleaned)
+        if not cleaned:
+            continue
+        if normalized in stop_labels:
+            break
+        if re.match(r"^you have \d+ important updates$", cleaned, re.I):
+            continue
+        if re.match(r"^(home|view photos|show more)$", cleaned, re.I):
+            continue
+        if re.match(r"^(open|likely open|closed|instant submission|high job demand|scholarships available|prime|incentivized|popular|fast acceptance)$", cleaned, re.I):
+            continue
+        if re.fullmatch(r"\d+", cleaned):
+            continue
+        header_lines.append(cleaned)
+
+    institution = ""
+    programme_name = ""
+
+    for index, line in enumerate(header_lines):
+        if looks_like_institution(line):
+            institution = normalize_institution_name(line)
+            for next_line in header_lines[index + 1:]:
+                if looks_like_programme_title(next_line):
+                    programme_name = clean(next_line)
+                    return institution, programme_name
+            break
+
+    if not programme_name:
+        for line in header_lines:
+            if looks_like_programme_title(line):
+                programme_name = clean(line)
+                break
+
+    return institution, programme_name
+
+
+def extract_available_intakes(text: str, chunks: list[str], lines: list[str] | None = None) -> str:
+    if lines:
+        for section_label in ("Program Intakes", "Available Intakes"):
+            section = extract_section_lines(
+                lines,
+                section_label,
+                stop_labels=INTAKE_SECTION_STOP_LABELS,
+            )
+            if section:
+                section_values = extract_month_year_values(" ".join(section))
+                if section_values:
+                    return ", ".join(section_values)
 
     intakes = []
 
     for index, chunk in enumerate(chunks):
-        if normalize_text(chunk) == "available intakes":
+        if normalize_text(chunk) in {"available intakes", "program intakes"}:
             for next_chunk in chunks[index + 1:index + 8]:
-                matches = re.findall(month_pattern, next_chunk, re.I)
-                for match in matches:
-                    value = clean(match)
+                matches = extract_month_year_values(next_chunk)
+                for value in matches:
                     if value not in intakes:
                         intakes.append(value)
             if intakes:
                 return ", ".join(intakes)
 
-    available_block = re.search(r'available\s+intakes(.{0,250})', text, re.I)
-    if available_block:
-        matches = re.findall(month_pattern, available_block.group(1), re.I)
-        for match in matches:
-            value = clean(match)
+    for pattern in (r'available\s+intakes(.{0,300})', r'program\s+intakes(.{0,300})'):
+        available_block = re.search(pattern, text, re.I)
+        if not available_block:
+            continue
+        for value in extract_month_year_values(available_block.group(1)):
             if value not in intakes:
                 intakes.append(value)
 
@@ -885,18 +1308,27 @@ def choose_program_name(card: Tag, href: str, text: str, chunks: list[str]) -> s
     candidates.extend(chunks[:8])
 
     seen = set()
+    fallback = []
     for candidate in candidates:
+        candidate = clean(candidate)
         normalized = normalize_text(candidate)
         if not normalized or normalized in seen:
             continue
         seen.add(normalized)
+        if looks_like_programme_title(candidate):
+            return candidate[:180]
         if looks_like_institution(candidate):
             continue
         if len(candidate) < 4:
             continue
+        if looks_like_location_line(candidate):
+            continue
         if re.search(r'^(country|city|campus|tuition|duration|language|intake)\b', candidate, re.I):
             continue
-        return candidate[:180]
+        fallback.append(candidate)
+
+    if fallback:
+        return fallback[0][:180]
 
     return ""
 
@@ -931,7 +1363,7 @@ def choose_university(card: Tag, text: str, chunks: list[str], program_name: str
         if normalized == program_normalized:
             continue
         if looks_like_institution(candidate):
-            return candidate[:180]
+            return normalize_institution_name(candidate)[:180]
 
     return ""
 
@@ -941,7 +1373,9 @@ def choose_field_from_card(card: Tag, text: str, field_name: str, max_len: int =
     chunks = get_card_chunks(card)
 
     if field_name == "city":
-        return extract_city_value(text, chunks)
+        return normalize_campus_city(extract_city_value(text, chunks))
+    if field_name == "duration":
+        return extract_duration_value(text, chunks)
     if field_name == "tuition":
         return extract_tuition_value(text, chunks)
 
@@ -1075,16 +1509,10 @@ def extract_programme_name(program_name: str, degree_level: str = "") -> str:
     if not value:
         return ""
 
-    normalized = normalize_text(value)
-    if " - " in value and (
-        "foundation" in normalized
-        or "undergraduate" in normalized
-        or "postgraduate" in normalized
-        or "masters" in normalized
-        or "bachelor" in normalized
-        or "phd" in normalized
-    ):
-        return clean(value.split(" - ", 1)[1])
+    if " - " in value:
+        left, right = [clean(part) for part in value.split(" - ", 1)]
+        if looks_like_institution(left) and right:
+            return right
 
     return value
 
@@ -1100,6 +1528,8 @@ EXPORT_COLUMNS = [
     "Year",
     "Academic Requirement(s)",
     "Eng. Language Req(s)",
+    "Application Fee",
+    "Other Fee(s)",
     "Province/State/City",
     "Tuition Fee",
     "Scholarship",
@@ -1117,6 +1547,8 @@ EXPORT_WIDTHS = {
     "Year": 12,
     "Academic Requirement(s)": 42,
     "Eng. Language Req(s)": 30,
+    "Application Fee": 18,
+    "Other Fee(s)": 26,
     "Province/State/City": 24,
     "Tuition Fee": 18,
     "Scholarship": 22,
@@ -1129,12 +1561,13 @@ def build_export_record(record: dict) -> dict:
         combine_nonempty([record.get("degree_level", ""), record.get("program_name", "")], sep=" ")
     )
     programme_name = extract_programme_name(record.get("program_name", ""), record.get("degree_level", ""))
-    institute = record.get("university", "")
-    duration = record.get("duration", "")
-    intakes = record.get("detail_start_dates") or record.get("intake", "")
-    province_state_city = record.get("detail_campus") or record.get("city", "")
+    institute = normalize_institution_name(record.get("university", ""))
+    duration = extract_duration_value(record.get("duration", ""), [record.get("duration", "")])
+    intakes = normalize_intake_value(record.get("detail_start_dates") or record.get("intake", ""))
+    province_state_city = normalize_campus_city(record.get("detail_campus") or record.get("city", ""))
     country = record.get("country", "")
     tuition_fee = record.get("detail_tuition_detail") or record.get("tuition", "")
+    scholarship = record.get("detail_scholarship", "")
 
     return {
         "Country": country,
@@ -1144,18 +1577,200 @@ def build_export_record(record: dict) -> dict:
         "Duration": duration,
         "Gap Duration": "",
         "Intake": intakes,
-        "Year": "",
-        "Academic Requirement(s)": "",
-        "Eng. Language Req(s)": "",
+        "Year": extract_years(intakes, record.get("detail_deadline", "")),
+        "Academic Requirement(s)": record.get("detail_academic_requirements") or record.get("detail_requirements", ""),
+        "Eng. Language Req(s)": record.get("detail_english_language_requirements") or record.get("detail_english_req", ""),
+        "Application Fee": record.get("detail_application_fee", ""),
+        "Other Fee(s)": record.get("detail_other_fee", ""),
         "Province/State/City": province_state_city,
         "Tuition Fee": tuition_fee,
-        "Scholarship": "",
-        "Tution Fee After Scholarship": "",
+        "Scholarship": scholarship,
+        "Tution Fee After Scholarship": calculate_tuition_after_scholarship(tuition_fee, scholarship),
     }
 
 
 def build_export_rows(records: list[dict]) -> list[dict]:
     return [build_export_record(record) for record in records]
+
+
+DETAIL_SECTION_BREAKS = {
+    "Program Summary",
+    "Admission Requirements",
+    "Academic Background",
+    "Minimum Language Test Scores",
+    "Scholarships",
+    "Similar Programs",
+    "Program Intakes",
+    "Post-Study Work Visa",
+    "ApplyBoard Services",
+}
+
+LANGUAGE_TEST_LABELS = [
+    "IELTS",
+    "TOEFL",
+    "PTE",
+    "Duolingo",
+    "GRE",
+    "GMAT",
+    "CAE",
+    "CAEL",
+    "MELAB",
+]
+
+
+def extract_nonempty_lines(text: str) -> list[str]:
+    return [clean(line) for line in (text or "").splitlines() if clean(line)]
+
+
+def extract_section_lines(lines: list[str], start_label: str, stop_labels: list[str] | None = None) -> list[str]:
+    start_norm = normalize_text(start_label)
+    stop_norms = {normalize_text(label) for label in (stop_labels or [])}
+    section_breaks = {normalize_text(label) for label in DETAIL_SECTION_BREAKS}
+    start_index = -1
+
+    for index, line in enumerate(lines):
+        if normalize_text(line) == start_norm:
+            start_index = index + 1
+            break
+
+    if start_index < 0:
+        return []
+
+    section = []
+    for line in lines[start_index:]:
+        normalized = normalize_text(line)
+        if normalized in stop_norms:
+            break
+        if section and normalized in section_breaks:
+            break
+        section.append(line)
+    return section
+
+
+def is_fee_like_value(value: str) -> bool:
+    return bool(re.search(r"(?:[$£€]|[A-Z]{3}|\bFree\b|\d)", value or "", re.I))
+
+
+def extract_value_after_label(
+    lines: list[str],
+    label: str,
+    stop_labels: list[str] | None = None,
+    skip_values: list[str] | None = None,
+) -> str:
+    label_norm = normalize_text(label)
+    stop_norms = {normalize_text(item) for item in (stop_labels or [])}
+    skip_norms = {normalize_text(item) for item in (skip_values or [])}
+
+    for index, line in enumerate(lines):
+        if normalize_text(line) != label_norm:
+            continue
+        for candidate in lines[index + 1:]:
+            normalized = normalize_text(candidate)
+            if normalized in stop_norms:
+                return ""
+            if normalized in skip_norms or not normalized:
+                continue
+            return candidate
+    return ""
+
+
+def extract_academic_requirements(lines: list[str]) -> str:
+    section = extract_section_lines(
+        lines,
+        "Academic Background",
+        stop_labels=["Minimum Language Test Scores", "Scholarships", "Similar Programs", "Program Intakes"],
+    )
+    requirements = []
+
+    minimum_education = extract_value_after_label(
+        section,
+        "Minimum Level of Education Completed",
+        stop_labels=["Minimum GPA", "Minimum Language Test Scores"],
+    )
+    minimum_gpa = extract_value_after_label(
+        section,
+        "Minimum GPA",
+        stop_labels=["Minimum Language Test Scores", "Scholarships"],
+        skip_values=["Convert grades"],
+    )
+
+    if minimum_education:
+        requirements.append(f"Minimum Level of Education Completed: {minimum_education}")
+    if minimum_gpa:
+        requirements.append(f"Minimum GPA: {minimum_gpa}")
+
+    return combine_nonempty(requirements)
+
+
+def extract_language_requirements(lines: list[str]) -> str:
+    section = extract_section_lines(
+        lines,
+        "Minimum Language Test Scores",
+        stop_labels=[
+            "This program requires valid language test results",
+            "The program requirements above should only be used as a guide and do not guarantee admission into the program.",
+            "Scholarships",
+            "Similar Programs",
+        ],
+    )
+    requirements = []
+    known_labels = {normalize_text(label) for label in LANGUAGE_TEST_LABELS}
+
+    for label in LANGUAGE_TEST_LABELS:
+        value = extract_value_after_label(section, label, stop_labels=LANGUAGE_TEST_LABELS)
+        if value:
+            requirements.append(f"{label}: {value}")
+
+    if requirements:
+        return combine_nonempty(requirements)
+
+    fallback = []
+    for index, line in enumerate(section[:-1]):
+        if normalize_text(line) in known_labels:
+            value = section[index + 1]
+            if value and normalize_text(value) not in known_labels:
+                fallback.append(f"{line}: {value}")
+
+    return combine_nonempty(fallback)
+
+
+def extract_application_fee(lines: list[str], text: str) -> str:
+    application_fee = extract_value_after_label(
+        lines,
+        "Application Fee",
+        stop_labels=["Other Fees", "Program Intakes", "Scholarships"],
+    )
+    if application_fee:
+        return application_fee
+
+    match = re.search(r"Application Fee\s+([^\n]+)", text, re.I)
+    return clean(match.group(1)) if match else ""
+
+
+def extract_other_fee(lines: list[str], text: str) -> str:
+    section = extract_section_lines(
+        lines,
+        "Other Fees",
+        stop_labels=["Program Intakes", "Scholarships", "Similar Programs", "Post-Study Work Visa"],
+    )
+    fee_parts = []
+    index = 0
+
+    while index < len(section):
+        label = section[index]
+        if index + 1 < len(section) and is_fee_like_value(section[index + 1]):
+            fee_parts.append(f"{label}: {section[index + 1]}")
+            index += 2
+            continue
+        if label:
+            fee_parts.append(label)
+        index += 1
+
+    if fee_parts:
+        return combine_nonempty(fee_parts)
+
+    match = re.search(r"Other Fees\s+(.+?)\s+Program Intakes", text, re.I | re.S)
+    return clean(match.group(1))[:300] if match else ""
 
 
 def parse_card(card: Tag) -> dict:
@@ -1200,15 +1815,33 @@ def parse_all_cards(html: str, debug: bool = False) -> list[dict]:
 # DETAIL PAGE
 # ──────────────────────────────────────────────────────────────────────────────
 
-async def scrape_detail(page: Page, url: str, debug: bool = False) -> dict:
+async def scrape_detail(page: Page, url: str, debug: bool = False, screenshot_path: Path | None = None) -> dict:
     if not url: return {}
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-        await page.wait_for_timeout(4000)
+        detail_ready = await wait_for_first_visible(
+            page,
+            [
+                "h1",
+                'text="Program Summary"',
+                'text="Admission Requirements"',
+                'text="Overview"',
+            ],
+            45_000,
+        )
+        if detail_ready:
+            await settle_page(page, pause_ms=1_800)
+        else:
+            await settle_page(page, pause_ms=4_000)
+        if screenshot_path:
+            await page.screenshot(path=str(screenshot_path), full_page=True)
+            print(f"      Screenshot -> {screenshot_path}")
         html = await page.content()
         if debug: save_debug_html(html, "detail")
         soup = BeautifulSoup(html, "html.parser")
         text = soup.get_text(" ", strip=True)
+        body_text = await page.locator("body").inner_text()
+        detail_lines = extract_nonempty_lines(body_text)
         chunks = get_card_chunks(soup, max_len=160)
 
         def g(*keys):
@@ -1224,20 +1857,28 @@ async def scrape_detail(page: Page, url: str, debug: bool = False) -> dict:
 
         meta = soup.select_one('meta[name="description"], meta[property="og:description"]')
         desc = clean(meta["content"]) if meta and meta.get("content") else g("description","overview","about")
+        detail_institution, detail_program_name = extract_detail_header_fields(detail_lines)
+        academic_requirements = extract_academic_requirements(detail_lines)
+        english_requirements = extract_language_requirements(detail_lines)
+        application_fee = extract_application_fee(detail_lines, body_text)
+        other_fee = extract_other_fee(detail_lines, body_text)
 
         detail_record = {
-            "program_name": choose_program_name(soup, url, text, chunks),
-            "university": choose_university(soup, text, chunks, ""),
+            "program_name": detail_program_name or choose_program_name(soup, url, text, chunks),
+            "university": detail_institution or choose_university(soup, text, chunks, detail_program_name),
             "detail_description":     desc,
-            "detail_requirements":    g("requirement","admission","eligibility")    or p(r'(?:admission|entry)\s*requirements?[:\s]+([^.]{20,300})'),
-            "detail_english_req":     g("english","ielts","toefl","language-req")  or p(r'(?:ielts|toefl|english)[:\s]+([^.]{10,200})'),
-            "detail_application_fee": g("application-fee","applicationFee")        or p(r'application\s*fee[:\s]+([^\n]{5,100})'),
+            "detail_requirements":    academic_requirements or g("requirement","admission","eligibility") or p(r'(?:admission|entry)\s*requirements?[:\s]+([^.]{20,300})'),
+            "detail_academic_requirements": academic_requirements,
+            "detail_english_req":     english_requirements or g("english","ielts","toefl","language-req") or p(r'(?:ielts|toefl|english)[:\s]+([^.]{10,200})'),
+            "detail_english_language_requirements": english_requirements,
+            "detail_application_fee": application_fee or g("application-fee","applicationFee") or p(r'application\s*fee[:\s]+([^\n]{5,100})'),
+            "detail_other_fee":       other_fee,
             "detail_gpa":             g("gpa","grade","average")                   or p(r'(?:gpa|grade)[:\s]+([^\n]{3,80})'),
             "detail_work_permit":     g("work-permit","coop","co-op","internship") or p(r'(?:work permit|co-?op)[:\s]+([^.]{10,200})'),
             "detail_scholarship":     g("scholarship","bursary","funding")         or p(r'scholarship[:\s]+([^.]{10,200})'),
             "detail_accreditation":   g("accreditation","accredited")              or p(r'accreditati\w+[:\s]+([^.]{10,200})'),
-            "detail_campus":          extract_city_value(text, chunks) or g("campus-location","campus-city") or p(r'(?:campus city|city|campus)[:\s]+([^\n]{2,150})'),
-            "detail_start_dates":     extract_available_intakes(text, chunks) or g("available-intakes","intake","start-date","start-dates") or p(r'available\s+intakes[:\s]+([^\n]{5,150})') or p(r'(?:start date|intake)[:\s]+([^\n]{5,150})'),
+            "detail_campus":          normalize_campus_city(extract_city_value(text, chunks) or g("campus-location","campus-city") or p(r'(?:campus city|city|campus)[:\s]+([^\n]{2,150})')),
+            "detail_start_dates":     extract_available_intakes(text, chunks, detail_lines) or normalize_intake_value(g("available-intakes","intake","start-date","start-dates")) or normalize_intake_value(p(r'available\s+intakes[:\s]+([^\n]{5,150})')) or normalize_intake_value(p(r'(?:start date|intake)[:\s]+([^\n]{5,150})')),
             "detail_deadline":        g("deadline","application-deadline")         or p(r'deadline[:\s]+([^\n]{5,100})'),
             "detail_tuition_detail":  extract_tuition_value(text, chunks) or g("tuition-detail","annual-tuition","tuition") or p(r'tuition\s*\(?(?:1st|first)\s*year\)?[:\s]+([^\n]{5,150})') or p(r'(?:annual\s+)?tuition[:\s]+([^\n]{5,150})'),
         }
@@ -1322,7 +1963,7 @@ def export_csv(records, path):
 # PROMPT
 # ──────────────────────────────────────────────────────────────────────────────
 
-def prompt_user():
+def prompt_user(force_login: bool = False):
     print("\n" + "═"*60)
     print("  ApplyBoard Program Scraper  🎓")
     print("═"*60)
@@ -1343,29 +1984,79 @@ def prompt_user():
 
     print()
     do_details = input("🔍  Scrape detail pages? (y/n) [y]: ").strip().lower() != "n"
+    use_login  = force_login or input("Login to ApplyBoard first? (y/n) [n]: ").strip().lower() == "y"
+
+    auth = {"enabled": use_login, "email": "", "password": ""}
+    if use_login:
+        env_email = os.getenv("APPLYBOARD_EMAIL", "").strip()
+        env_password = os.getenv("APPLYBOARD_PASSWORD", "").strip()
+        email_prompt = "  ApplyBoard email"
+        if env_email:
+            email_prompt += f" [{mask_email(env_email)}]"
+        email = input(f"{email_prompt}: ").strip() or env_email
+        password = getpass("  ApplyBoard password: ").strip() or env_password
+        if not email or not password:
+            raise ValueError(
+                "Login was enabled, but the ApplyBoard email/password was not provided."
+            )
+        auth = {"enabled": True, "email": email, "password": password}
+
+    screenshot_count = 0
+    screenshot_dir = ""
+    if do_details:
+        shot_input = input("Save screenshots of the first N detail pages? [0]: ").strip()
+        screenshot_count = int(shot_input) if shot_input.isdigit() else 0
+        if screenshot_count > 0:
+            screenshot_dir = (
+                input("Screenshot folder [program_detail_screenshots]: ").strip()
+                or "program_detail_screenshots"
+            )
     max_p      = input("📄  Max pages (0 = all) [0]: ").strip()
     max_pages  = int(max_p) if max_p.isdigit() else 0
     out_fmt    = input("💾  Output: xlsx / csv / both [xlsx]: ").strip().lower() or "xlsx"
     out_name   = input("📁  Filename (no extension) [applyboard_programs]: ").strip() or "applyboard_programs"
 
-    return filters, do_details, max_pages, out_fmt, out_name
+    return filters, do_details, max_pages, out_fmt, out_name, auth, screenshot_count, screenshot_dir
 
 # ──────────────────────────────────────────────────────────────────────────────
 # MAIN RUN
 # ──────────────────────────────────────────────────────────────────────────────
 
 async def run(filters, do_details, max_pages, out_fmt, out_name,
+              auth=None, screenshot_count=0, screenshot_dir="",
               debug=False, headless=False):
 
     all_records = []
+    seen_program_keys = set()
+    auth = auth or {"enabled": False, "email": "", "password": ""}
+    screenshot_root = Path(screenshot_dir) if screenshot_dir else None
+    storage_state_path = SESSION_STATE_PATH if has_saved_session() else None
+    if screenshot_count > 0 and screenshot_root:
+        screenshot_root.mkdir(parents=True, exist_ok=True)
 
     async with async_playwright() as pw:
-        browser, ctx = await create_browser(pw, headless=headless)
+        browser, ctx = await create_browser(
+            pw,
+            headless=headless,
+            storage_state_path=storage_state_path,
+        )
         page = await ctx.new_page()
 
-        print(f"\n🌐  Opening public search page → {BASE_URL}")
+        if auth.get("enabled"):
+            session_active = False
+            if storage_state_path:
+                print(f"\n[session] Reusing saved ApplyBoard session -> {storage_state_path}")
+                session_active = await has_active_agent_session(page, debug=debug)
+            if not session_active:
+                await login_to_applyboard(page, auth.get("email", ""), auth.get("password", ""), debug=debug)
+                await ctx.storage_state(path=str(SESSION_STATE_PATH))
+                print(f"   [ok] Saved session -> {SESSION_STATE_PATH}")
+        elif storage_state_path:
+            print(f"\n[session] Loaded saved ApplyBoard session -> {storage_state_path}")
+
+        print(f"\n🌐  Opening search page → {BASE_URL}")
         await page.goto(BASE_URL, wait_until="domcontentloaded", timeout=30_000)
-        await page.wait_for_timeout(4000)
+        await settle_page(page, pause_ms=2_400)
         if debug:
             save_debug_html(await page.content(), "search_landing")
 
@@ -1402,12 +2093,12 @@ async def run(filters, do_details, max_pages, out_fmt, out_name,
 
             print(f"\n📄  Page {page_num} → {url}")
             if page_num == 1:
-                await page.wait_for_timeout(PAGE_LOAD_WAIT)
+                await settle_page(page, pause_ms=max(2_000, PAGE_LOAD_WAIT // 4))
             else:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-                await page.wait_for_timeout(PAGE_LOAD_WAIT)
+                await settle_page(page, pause_ms=max(2_000, PAGE_LOAD_WAIT // 4))
             await human_scroll(page)
-            await page.wait_for_timeout(1000)
+            await human_pause(900, 1600)
 
             html = await page.content()
             if debug:
@@ -1420,16 +2111,53 @@ async def run(filters, do_details, max_pages, out_fmt, out_name,
                 print("   ✅  No more results.")
                 break
 
+            new_page_records = []
+            repeated_page_records = 0
+            for rec in records:
+                program_url = rec.get("program_url", "")
+                record_key = (
+                    program_url,
+                    normalize_text(rec.get("program_name", "")),
+                    normalize_text(rec.get("university", "")),
+                    normalize_intake_value(rec.get("intake", "")),
+                )
+                if record_key in seen_program_keys:
+                    repeated_page_records += 1
+                    continue
+                seen_program_keys.add(record_key)
+                new_page_records.append(rec)
+
+            if not new_page_records:
+                print("   ✅  No new programs found on this page. Stopping pagination.")
+                break
+
+            if repeated_page_records:
+                print(f"   Skipped {repeated_page_records} programs already captured from earlier pages")
+
+            records = new_page_records
+
             if do_details and detail_tab:
                 for i, rec in enumerate(records):
                     url_d = rec.get("program_url","")
                     if url_d and url_d.startswith("http"):
                         print(f"   [{i+1}/{len(records)}] {url_d[:80]}")
-                        detail_data = await scrape_detail(detail_tab, url_d, debug=(debug and i == 0))
+                        screenshot_path = None
+                        should_capture = screenshot_root and len(all_records) + i < screenshot_count
+                        if should_capture:
+                            program_stub = sanitize_filename(
+                                rec.get("program_name") or rec.get("university") or "program"
+                            )
+                            screenshot_path = screenshot_root / f"page_{page_num:02d}_{i+1:02d}_{program_stub}.png"
+                        detail_data = await scrape_detail(
+                            detail_tab,
+                            url_d,
+                            debug=(debug and i == 0),
+                            screenshot_path=screenshot_path,
+                        )
                         if detail_data:
                             rec = merge_record(rec, detail_data)
                             records[i] = rec
-                        rand_sleep(0.8, 2.0)
+                        await human_pause(900, 2000)
 
             all_records.extend(records)
 
@@ -1437,13 +2165,8 @@ async def run(filters, do_details, max_pages, out_fmt, out_name,
                 print("   ✋  Page limit reached.")
                 break
 
-            # If we got fewer results than page size, we're on the last page
-            if len(records) < PAGE_SIZE:
-                print("   ✅  Last page (partial results).")
-                break
-
             page_num += 1
-            rand_sleep()
+            await human_pause(1500, 3200)
 
         if detail_tab: await detail_tab.close()
         await browser.close()
@@ -1471,15 +2194,39 @@ async def run(filters, do_details, max_pages, out_fmt, out_name,
 def main():
     parser = argparse.ArgumentParser(description="ApplyBoard scraper")
     parser.add_argument("--debug",      action="store_true", help="Save raw HTML for inspection")
+    parser.add_argument("--login",      action="store_true", help="Prompt for ApplyBoard login before scraping")
     parser.add_argument("--no-details", action="store_true", help="Skip detail pages")
     parser.add_argument("--headless",   action="store_true", help="Headless browser mode")
+    parser.add_argument("--screenshots", type=int, default=0, help="Save the first N detail pages as screenshots")
+    parser.add_argument("--screenshot-dir", default="", help="Folder for detail page screenshots")
     args = parser.parse_args()
 
-    filters, do_details, max_pages, out_fmt, out_name = prompt_user()
+    filters, do_details, max_pages, out_fmt, out_name, auth, screenshot_count, screenshot_dir = prompt_user(
+        force_login=args.login
+    )
+    if args.login:
+        auth["enabled"] = True
+        if not auth.get("email"):
+            auth["email"] = os.getenv("APPLYBOARD_EMAIL", "").strip()
+        if not auth.get("password"):
+            auth["password"] = os.getenv("APPLYBOARD_PASSWORD", "").strip()
+        if not auth.get("email") or not auth.get("password"):
+            raise ValueError(
+                "--login was provided, but ApplyBoard credentials were not supplied in the prompt "
+                "or via APPLYBOARD_EMAIL / APPLYBOARD_PASSWORD."
+            )
     if args.no_details: do_details = False
+    if args.screenshots:
+        screenshot_count = args.screenshots
+    if args.screenshot_dir:
+        screenshot_dir = args.screenshot_dir
+    if screenshot_count > 0 and not args.no_details:
+        do_details = True
 
     asyncio.run(run(filters, do_details, max_pages,
-                    out_fmt, out_name, debug=args.debug, headless=args.headless))
+                    out_fmt, out_name, auth=auth,
+                    screenshot_count=screenshot_count, screenshot_dir=screenshot_dir,
+                    debug=args.debug, headless=args.headless))
 
 
 if __name__ == "__main__":
